@@ -1,11 +1,12 @@
-import hmac
-import hashlib
 from flask import Flask, jsonify, request, make_response
 from http import HTTPStatus
 from functools import wraps
 
 from clockzy.lib.global_vars.slack_vars import ECHO_REQUEST
 from clockzy.lib.messages import api_responses
+from clockzy.lib.models.slack_request import SlackRequest
+from clockzy.lib.handlers.codes import BAD_SLACK_SIGNATURE, BAD_SLACK_TIMESTAMP_REQUEST, NON_SLACK_REQUEST
+from clockzy.lib.slack import slack
 from clockzy.config import settings
 
 
@@ -21,25 +22,16 @@ def validate_slack_request(func):
     """Decorator function to validate that the request comes from the slack app and from no other source."""
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if 'X-Slack-Signature' not in request.headers or 'X-Slack-Request-Timestamp' not in request.headers:
-            return jsonify({'result': api_responses.BAD_SLACK_HEADERS_REQUEST}), HTTPStatus.BAD_REQUEST
+        decoded_request_body = slack.decode_slack_args(request.get_data().decode('utf-8'))
+        slack_request_object = SlackRequest(headers=request.headers, **decoded_request_body)
+        validation = slack_request_object.validate_slack_request_signature(request.get_data())
 
-        request_signature = request.headers['X-Slack-Signature']
-        request_timestamp = int(request.headers['X-Slack-Request-Timestamp'])
-        request_body = request.get_data().decode('utf-8')
-
-        # Verify that the request is not prior to 1 minute (Avoid replay attacks)
-        if int(time.time() - request_timestamp) > 60:
-            return jsonify({'result': api_responses.BAD_SLACK_TIMESTAMP_REQUEST}), HTTPStatus.BAD_REQUEST
-
-        sign_basestring = f"v0:{request_timestamp}:{request_body}"
-        signature = hmac.new(bytes(settings.SLACK_APP_SIGNATURE, 'utf-8'), bytes(sign_basestring, 'utf-8'),
-                             digestmod=hashlib.sha256).hexdigest()
-        signature_check = f"v0={signature}"
-
-        # Validate request signature
-        if not hmac.compare_digest(signature_check, request_signature):
+        if validation == NON_SLACK_REQUEST:
             return jsonify({'result': api_responses.NON_SLACK_REQUEST}), HTTPStatus.UNAUTHORIZED
+        elif validation == BAD_SLACK_TIMESTAMP_REQUEST:
+            return jsonify({'result': api_responses.BAD_SLACK_HEADERS_REQUEST}), HTTPStatus.UNAUTHORIZED
+        elif validation == BAD_SLACK_SIGNATURE:
+            return jsonify({'result': api_responses.BAD_SLACK_SIGNATURE}), HTTPStatus.UNAUTHORIZED
 
         return func(*args, **kwargs)
 
