@@ -2,12 +2,15 @@ from flask import Flask, jsonify, request, make_response
 from http import HTTPStatus
 from functools import wraps
 
-from clockzy.lib.global_vars.slack_vars import ECHO_REQUEST
-from clockzy.lib.messages import api_responses
+from clockzy.lib.global_vars.slack_vars import ECHO_REQUEST, ADD_USER_REQUEST
+from clockzy.lib.messages import api_responses as ar
 from clockzy.lib.models.slack_request import SlackRequest
-from clockzy.lib.handlers.codes import BAD_SLACK_SIGNATURE, BAD_SLACK_TIMESTAMP_REQUEST, NON_SLACK_REQUEST
-from clockzy.lib.slack import slack
+from clockzy.lib.models.user import User
+from clockzy.lib.handlers import codes as cd
+from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
+from clockzy.lib.slack import slack_messages as msg
+from clockzy.lib.db import db_schema as dbs
 
 
 app = Flask(__name__)
@@ -26,12 +29,15 @@ def validate_slack_request(func):
         slack_request_object = SlackRequest(headers=request.headers, **decoded_request_body)
         validation = slack_request_object.validate_slack_request_signature(request.get_data())
 
-        if validation == NON_SLACK_REQUEST:
-            return jsonify({'result': api_responses.NON_SLACK_REQUEST}), HTTPStatus.UNAUTHORIZED
-        elif validation == BAD_SLACK_TIMESTAMP_REQUEST:
-            return jsonify({'result': api_responses.BAD_SLACK_HEADERS_REQUEST}), HTTPStatus.UNAUTHORIZED
-        elif validation == BAD_SLACK_SIGNATURE:
-            return jsonify({'result': api_responses.BAD_SLACK_SIGNATURE}), HTTPStatus.UNAUTHORIZED
+        if validation == cd.NON_SLACK_REQUEST:
+            return jsonify({'result': ar.NON_SLACK_REQUEST}), HTTPStatus.UNAUTHORIZED
+        elif validation == cd.BAD_SLACK_TIMESTAMP_REQUEST:
+            return jsonify({'result': ar.BAD_SLACK_HEADERS_REQUEST}), HTTPStatus.UNAUTHORIZED
+        elif validation == cd.BAD_SLACK_SIGNATURE:
+            return jsonify({'result': ar.BAD_SLACK_SIGNATURE}), HTTPStatus.UNAUTHORIZED
+
+        # Add the slack request object to the function arguments
+        kwargs['slack_request_object'] = slack_request_object
 
         return func(*args, **kwargs)
 
@@ -47,6 +53,30 @@ def echo():
     - Output_data: {'result': 'Alive'}
     """
     return jsonify({'result': 'ALIVE'})
+
+
+@app.route(ADD_USER_REQUEST, methods=['POST'])
+@validate_slack_request
+def sign_up(slack_request_object):
+    """
+    Description: Endpoint register a new user
+
+    Input_data: b'token=x&team_id=x&team_domain=x&channel_id=x&channel_name=x&user_id=x&user_name=x&
+                  command=%2Fsign_up&text=&api_app_id=x&response_url=x&trigger_id=x'
+
+    Output_data: {}, 200
+    """
+    user = User(slack_request_object.user_id, slack_request_object.user_name)
+    result = user.save()
+
+    if result == cd.SUCCESS:
+        slack.post_ephemeral_response_message(msg.ADD_USER_SUCCESS, slack_request_object.response_url)
+    elif result == cd.ITEM_ALREADY_EXISTS:
+        slack.post_ephemeral_response_message(msg.USER_ALREADY_REGISTERED, slack_request_object.response_url)
+    else:
+        slack.post_ephemeral_response_message(msg.ADD_USER_ERROR, slack_request_object.response_url)
+
+    return empty_response()
 
 
 if __name__ == '__main__':
