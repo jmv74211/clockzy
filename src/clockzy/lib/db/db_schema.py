@@ -17,7 +17,7 @@ USER_TABLE_SCHEMA = """ \
         entry_data DATETIME,
         last_registration_date DATETIME,
         PRIMARY KEY (id)
-    )
+    )Engine=InnoDB;
 """
 
 CLOCK_TABLE_SCHEMA = """ \
@@ -27,35 +27,36 @@ CLOCK_TABLE_SCHEMA = """ \
         action VARCHAR(20) NOT NULL,
         date_time DATETIME NOT NULL,
         PRIMARY KEY (id),
-        FOREIGN KEY (user_id) REFERENCES user(id)
-    )
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
+    )Engine=InnoDB;
 """
 
 COMMANDS_HISTORY_TABLE_SCHEMA = """ \
-    CREATE TABLE IF NOT EXISTS commands_history (
+    CREATE TABLE IF NOT EXISTS command_history (
         id INT NOT NULL AUTO_INCREMENT,
         user_id VARCHAR(50),
         command VARCHAR(50) NOT NULL,
         parameters VARCHAR(150),
         date_time DATETIME NOT NULL,
         PRIMARY KEY (id),
-        FOREIGN KEY (user_id) REFERENCES user(id)
-    )
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
+    )Engine=InnoDB;
 """
 
 CONFIG_TABLE_SCHEMA = """ \
     CREATE TABLE IF NOT EXISTS config (
         user_id VARCHAR(50),
         intratime_integration BOOLEAN NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES user(id)
-    )
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
+    )Engine=InnoDB;
 """
 
 ALIAS_TABLE_SCHEMA = """ \
     CREATE TABLE IF NOT EXISTS alias (
-        user_name VARCHAR(100) NOT NULL,
+        id INT NOT NULL AUTO_INCREMENT,
+        user_id VARCHAR(100) NOT NULL,
         alias VARCHAR(100) NOT NULL,
-        PRIMARY KEY (alias),
-        FOREIGN KEY (user_name) REFERENCES user(user_name)
-    )
+        PRIMARY KEY (id),
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
+    )Engine=InnoDB;
 """

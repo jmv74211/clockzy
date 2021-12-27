@@ -85,7 +85,7 @@ class Database:
             database_name (str): Name of the database to create.
         """
         connection = pymysql.connect(host=self.host, user=self.user, password=self.password, port=self.port)
-        with connection as cursor:
+        with connection.cursor() as cursor:
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS {database_name};")
             connection.commit()
         connection.close()

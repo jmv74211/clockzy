@@ -18,5 +18,3 @@ if __name__ == '__main__':
     # Create the tables if not exist
     for table_schema in SCHEMAS:
         database.run_query(table_schema)
-
-    database.close()
