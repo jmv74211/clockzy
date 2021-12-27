@@ -147,3 +147,52 @@ def get_user_object(user_id):
     user_object.entry_data = user_data[0][4]
 
     return user_object
+
+
+def get_last_clock_from_user(user_id):
+    """Get the last clock data from the specified user ID.
+
+    Args:
+        user_id (str): User identifier to get the data.
+
+    Returns:
+        Clock: Last clock object with the DB data.
+        None: If the user does not have any registration made in the DB.
+    """
+    # Avoid circular import
+    from clockzy.lib.db.db_schema import CLOCK_TABLE
+    from clockzy.lib.models.clock import Clock
+
+    clock_data = run_query(f"SELECT * FROM {CLOCK_TABLE} WHERE user_id='{user_id}' ORDER BY id desc LIMIT 1")
+
+    if len(clock_data) == 0:
+        return None
+
+    clock_object = Clock(user_id, clock_data[0][2], clock_data[0][3])
+    clock_object.id = clock_data[0][0]
+
+    return clock_object
+
+
+def get_config_object(user_id):
+    """Get the user config object from DB.
+
+    Args:
+        user_id (str): User identifier to get the data.
+
+    Returns:
+        Clock: Last clock object with the DB data.
+        None: If the user does not have any registration made in the DB.
+    """
+    # Avoid circular import
+    from clockzy.lib.db.db_schema import CONFIG_TABLE
+    from clockzy.lib.models.config import Config
+
+    config_data = get_database_data_from_objects({'user_id': user_id}, CONFIG_TABLE)
+
+    if len(config_data) == 0:
+        return None
+
+    config_object = Config(user_id, config_data[0][1])
+
+    return config_object

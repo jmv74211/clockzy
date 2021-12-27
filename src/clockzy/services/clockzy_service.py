@@ -7,15 +7,39 @@ from clockzy.lib.global_vars import slack_vars as var
 from clockzy.lib.messages import api_responses as ar
 from clockzy.lib.models.slack_request import SlackRequest
 from clockzy.lib.models.user import User
+from clockzy.lib.models.clock import Clock
+from clockzy.lib.models.command_history import CommandHistory
 from clockzy.lib.handlers import codes as cd
 from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
 from clockzy.lib.slack import slack_messages as msg
 from clockzy.lib.db import db_schema as dbs
+from clockzy.lib.utils.time import get_current_date_time
 from clockzy.lib.db.database_interface import item_exists, get_user_object
+from clockzy.lib.clocking import user_can_clock_this_action
 
 
 app = Flask(__name__)
+
+
+ALLOWED_COMMANDS = {
+    var.ECHO_REQUEST: {
+        'description': 'Development endpoint',
+        'allowed_parameters': []
+    },
+    var.SIGN_UP_REQUEST: {
+        'description': 'Sign up for this app.',
+        'allowed_parameters': []
+    },
+    var.DELETE_USER_REQUEST: {
+        'description': 'Delete your user from this app.',
+        'allowed_parameters': []
+    },
+    var.CLOCK_REQUEST: {
+        'description': 'Register a clocking action.',
+        'allowed_parameters': ['in', 'pause', 'return', 'out']
+    }
+}
 
 
 def empty_response():
@@ -23,8 +47,15 @@ def empty_response():
     return make_response('', HTTPStatus.OK)
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                API DECORATORS                                                        #
+# ----------------------------------------------------------------------------------------------------------------------
+
 def validate_slack_request(func):
-    """Decorator function to validate that the request comes from the slack app and from no other source."""
+    """Validate that the request comes from the slack app and from no other source.
+
+    In addition, it adds a new parameter that contains the slack request information.
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         decoded_request_body = slack.decode_slack_args(request.get_data().decode('utf-8'))
@@ -47,6 +78,10 @@ def validate_slack_request(func):
 
 
 def validate_user(func):
+    """Check that the slack user is registered in the clockzy app before running the command action.
+
+    In addition, it adds a new parameter that contains the user information.
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         if 'slack_request_object' not in kwargs:
@@ -68,9 +103,63 @@ def validate_user(func):
     return wrapper
 
 
+def validate_command_parameters(func):
+    """Check that the command or the command parameters are allowed."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if 'slack_request_object' not in kwargs:
+            print('Programming error slack_request_object does not exist in the validate_command_parameters decorator.')
+            return make_response('', HTTPStatus.INTERNAL_SERVER_ERROR)
+
+        command = kwargs['slack_request_object'].command
+        command_parameters = kwargs['slack_request_object'].command_parameters
+        response_url = kwargs['slack_request_object'].response_url
+
+        # Check if it is an expected command
+        if command not in ALLOWED_COMMANDS.keys():
+            command_error = f"`{command}` is not an allowed command. Allowed ones: `{ALLOWED_COMMANDS.keys()}`"
+            slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
+            return empty_response()
+
+        # Check if the specified parameter is allowed
+        if len(command_parameters) == 0 and len(ALLOWED_COMMANDS[command]['allowed_parameters']) > 0 or \
+           command_parameters[0] not in ALLOWED_COMMANDS[command]['allowed_parameters']:
+            parameter_error = f"`{command}` command expects one of the following parameters: " \
+                              f"`{ALLOWED_COMMANDS[command]['allowed_parameters']}`"
+            slack.post_ephemeral_response_message(msg.build_error_message(parameter_error), response_url)
+            return empty_response()
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def command_monitoring(func):
+    """Log the command request in the history"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if 'slack_request_object' not in kwargs:
+            print('Programming error, slack_request_object does not exist in the command_monitoring decorator.')
+            return make_response('', HTTPStatus.INTERNAL_SERVER_ERROR)
+
+        command_history = CommandHistory(kwargs['slack_request_object'].user_id, kwargs['slack_request_object'].command,
+                                         ' '.join(kwargs['slack_request_object'].command_parameters))
+        command_history.save()
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                API ENDPOINTS                                                         #
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 @app.route(var.ECHO_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
+@command_monitoring
 def echo(slack_request_object, user_data):
     """Endpoint to check the current server status
 
@@ -80,13 +169,15 @@ def echo(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.ADD_USER_REQUEST, methods=['POST'])
+@app.route(var.SIGN_UP_REQUEST, methods=['POST'])
 @validate_slack_request
 def sign_up(slack_request_object):
     """ Endpoint to register a new user"""
+    # Save the user in the DB
     user = User(slack_request_object.user_id, slack_request_object.user_name)
     result = user.save()
 
+    # Communicate the result of the user creation operation
     if result == cd.SUCCESS:
         slack.post_ephemeral_response_message(msg.ADD_USER_SUCCESS, slack_request_object.response_url)
     elif result == cd.ITEM_ALREADY_EXISTS:
@@ -100,6 +191,7 @@ def sign_up(slack_request_object):
 @app.route(var.DELETE_USER_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
+@command_monitoring
 def delete_user(slack_request_object, user_data):
     """Endpoint to delete a registered user"""
     result = user_data.delete()
@@ -108,6 +200,46 @@ def delete_user(slack_request_object, user_data):
         slack.post_ephemeral_response_message(msg.DELETE_USER_SUCCESS, slack_request_object.response_url)
     else:
         slack.post_ephemeral_response_message(msg.DELETE_USER_ERROR, slack_request_object.response_url)
+
+    return empty_response()
+
+
+@app.route(var.CLOCK_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@validate_command_parameters
+@command_monitoring
+def clock(slack_request_object, user_data):
+    """Endpoint to delete a registered user"""
+    action = slack_request_object.command_parameters[0]
+    response_url = slack_request_object.response_url
+
+    # Check if the user can clock that action (it makes sense)
+    clock_check = user_can_clock_this_action(user_data.id, action)
+
+    # If the clocking is wrong, then indicate it to the user
+    if not clock_check[0]:
+        error_message = msg.build_block_message('Could not clock your action', clock_check[1], False, msg.ERROR_IMAGE)
+        slack.post_ephemeral_response_message(error_message, response_url, 'blocks')
+        return empty_response()
+
+    # Save the clock in the DB
+    clock = Clock(user_data.id, action, get_current_date_time())
+    result = clock.save()
+
+    # Communicate the result of the clocking operation
+    if result == cd.SUCCESS:
+        slack_message = msg.build_successful_clocking_message(user_data.id, clock.action, clock.date_time,
+                                                              user_data.user_name)
+        slack.post_ephemeral_response_message(slack_message, response_url, 'blocks')
+    else:
+        slack_message = msg.build_block_message('Could not clock your action', 'Contact with the app administrator',
+                                                False, msg.ERROR_IMAGE)
+        slack.post_ephemeral_response_message(slack_message, response_url)
+
+    # Update the last registration data from that user
+    user_data.last_registration_date = get_current_date_time()
+    user_data.update()
 
     return empty_response()
 
