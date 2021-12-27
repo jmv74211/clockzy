@@ -1,5 +1,6 @@
 from clockzy.lib.db.db_schema import COMMANDS_HISTORY_TABLE
 from clockzy.lib.handlers.codes import ITEM_ALREADY_EXISTS, ITEM_NOT_EXISTS
+from clockzy.lib.utils.time import get_current_date_time
 from clockzy.lib.db.database_interface import run_query_getting_status, get_last_insert_id, item_exists
 
 
@@ -19,12 +20,12 @@ class CommandHistory:
         parameters (str): Command parameters.
         date_time (str): Datetime when the command has been executed.
     """
-    def __init__(self, user_id, command, parameters, date_time):
+    def __init__(self, user_id, command, parameters, date_time=None):
         self.id = None
         self.user_id = user_id
         self.command = command
         self.parameters = parameters
-        self.date_time = date_time
+        self.date_time = date_time if date_time else get_current_date_time()
 
     def __str__(self):
         """Define how the class object will be displayed."""
