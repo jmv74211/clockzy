@@ -18,7 +18,7 @@ clock_parameters = {'user_id': intratime_user_parameters['id'], 'action': 'IN', 
 command_history_parameters = {'user_id': intratime_user_parameters['id'], 'command': '/time', 'parameters': 'today',
                               'date_time': get_current_date_time()}
 config_parameters = {'user_id': intratime_user_parameters['id'], 'intratime_integration': False}
-alias_parameters = {'user_name': intratime_user_parameters['user_name'], 'alias': 'test'}
+alias_parameters = {'user_id': intratime_user_parameters['id'], 'alias': 'test'}
 
 
 def clean_test_data():

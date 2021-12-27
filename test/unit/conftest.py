@@ -72,7 +72,10 @@ def add_pre_config(config_parameters):
 @pytest.fixture
 def delete_post_alias(alias_parameters):
     yield
+    alias_id = alias_parameters['id']
+    del alias_parameters['id']
     alias = Alias(**alias_parameters)
+    alias.id = alias_id
     alias.delete()
 
 
@@ -80,4 +83,4 @@ def delete_post_alias(alias_parameters):
 def add_pre_alias(alias_parameters):
     alias = Alias(**alias_parameters)
     alias.save()
-    yield
+    yield alias.id
