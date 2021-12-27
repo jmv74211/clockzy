@@ -119,3 +119,31 @@ def get_database_data_from_objects(object_parameters, table_name):
     result = run_query(build_select_query_from_object_parameters(object_parameters, table_name))
 
     return result if len(result) > 0 else []
+
+
+def get_user_object(user_id):
+    """Get the user object from the database data.
+
+    Args:
+        user_id (str): User identifier to get the data.
+
+    Returns:
+        User: User object with the DB data.
+        None: If the user_id does not exist in the DB.
+
+    """
+    # Avoid circular import
+    from clockzy.lib.db.db_schema import USER_TABLE
+    from clockzy.lib.models.user import User
+
+    user_data = get_database_data_from_objects({'id': user_id}, USER_TABLE)
+
+    if len(user_data) == 0:
+        return None
+
+    user_object = User(user_data[0][0], user_data[0][1])
+    user_object.password = user_data[0][2]
+    user_object.email = user_data[0][3]
+    user_object.entry_data = user_data[0][4]
+
+    return user_object

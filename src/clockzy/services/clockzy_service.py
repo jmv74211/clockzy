@@ -2,7 +2,8 @@ from flask import Flask, jsonify, request, make_response
 from http import HTTPStatus
 from functools import wraps
 
-from clockzy.lib.global_vars.slack_vars import ECHO_REQUEST, ADD_USER_REQUEST
+from clockzy.lib.db.db_schema import USER_TABLE
+from clockzy.lib.global_vars import slack_vars as var
 from clockzy.lib.messages import api_responses as ar
 from clockzy.lib.models.slack_request import SlackRequest
 from clockzy.lib.models.user import User
@@ -11,6 +12,7 @@ from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
 from clockzy.lib.slack import slack_messages as msg
 from clockzy.lib.db import db_schema as dbs
+from clockzy.lib.db.database_interface import item_exists, get_user_object
 
 
 app = Flask(__name__)
@@ -44,28 +46,44 @@ def validate_slack_request(func):
     return wrapper
 
 
-@app.route(ECHO_REQUEST, methods=['GET'])
+def validate_user(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if 'slack_request_object' not in kwargs:
+            print('Programming error, slack_request_object does not exist in the validate_user decorator.')
+            return make_response('', HTTPStatus.INTERNAL_SERVER_ERROR)
+
+        user_id = kwargs['slack_request_object'].user_id
+        response_url = kwargs['slack_request_object'].response_url
+
+        if not item_exists({'id': user_id}, USER_TABLE):
+            slack.post_ephemeral_response_message(msg.USER_NOT_REGISTERED, response_url)
+            return empty_response()
+
+        # Get the user data and return it
+        kwargs['user_data'] = get_user_object(user_id)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@app.route(var.ECHO_REQUEST, methods=['POST'])
 @validate_slack_request
-def echo():
+@validate_user
+def echo(slack_request_object, user_data):
     """Endpoint to check the current server status
 
     - Input_data: {}
     - Output_data: {'result': 'Alive'}
     """
-    return jsonify({'result': 'ALIVE'})
+    return empty_response()
 
 
-@app.route(ADD_USER_REQUEST, methods=['POST'])
+@app.route(var.ADD_USER_REQUEST, methods=['POST'])
 @validate_slack_request
 def sign_up(slack_request_object):
-    """
-    Description: Endpoint register a new user
-
-    Input_data: b'token=x&team_id=x&team_domain=x&channel_id=x&channel_name=x&user_id=x&user_name=x&
-                  command=%2Fsign_up&text=&api_app_id=x&response_url=x&trigger_id=x'
-
-    Output_data: {}, 200
-    """
+    """ Endpoint to register a new user"""
     user = User(slack_request_object.user_id, slack_request_object.user_name)
     result = user.save()
 
@@ -75,6 +93,21 @@ def sign_up(slack_request_object):
         slack.post_ephemeral_response_message(msg.USER_ALREADY_REGISTERED, slack_request_object.response_url)
     else:
         slack.post_ephemeral_response_message(msg.ADD_USER_ERROR, slack_request_object.response_url)
+
+    return empty_response()
+
+
+@app.route(var.DELETE_USER_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+def delete_user(slack_request_object, user_data):
+    """Endpoint to delete a registered user"""
+    result = user_data.delete()
+
+    if result == cd.SUCCESS:
+        slack.post_ephemeral_response_message(msg.DELETE_USER_SUCCESS, slack_request_object.response_url)
+    else:
+        slack.post_ephemeral_response_message(msg.DELETE_USER_ERROR, slack_request_object.response_url)
 
     return empty_response()
 
