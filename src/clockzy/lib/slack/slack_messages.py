@@ -76,6 +76,21 @@ def build_successful_clocking_message(user_id, clock_action, clock_date_time, us
     return block
 
 
+def build_worked_time_message(time_range, worked_time):
+    """Build the slack message when a user request to know the worked time.
+
+    Args:
+        time_range (str): Enum [today, week, month]
+        worked_time (str): Worked time string.
+
+    Returns:
+        str: Slack message.
+    """
+    time_string = 'this week' if time_range == 'week' else ('this month' if time_range == 'month' else time_range)
+
+    return f":timer_clock: Your working time {time_string} is *{worked_time}* :timer_clock:"
+
+
 ERROR_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/x.png'
 
 # Add user

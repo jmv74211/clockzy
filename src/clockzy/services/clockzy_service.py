@@ -9,6 +9,7 @@ from clockzy.lib.models.slack_request import SlackRequest
 from clockzy.lib.models.user import User
 from clockzy.lib.models.clock import Clock
 from clockzy.lib.models.command_history import CommandHistory
+from clockzy.lib.models.config import Config
 from clockzy.lib.handlers import codes as cd
 from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
@@ -16,7 +17,7 @@ from clockzy.lib.slack import slack_messages as msg
 from clockzy.lib.db import db_schema as dbs
 from clockzy.lib.utils.time import get_current_date_time
 from clockzy.lib.db.database_interface import item_exists, get_user_object
-from clockzy.lib.clocking import user_can_clock_this_action
+from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_time
 
 
 app = Flask(__name__)
@@ -38,6 +39,10 @@ ALLOWED_COMMANDS = {
     var.CLOCK_REQUEST: {
         'description': 'Register a clocking action.',
         'allowed_parameters': ['in', 'pause', 'return', 'out']
+    },
+    var.TIME_REQUEST: {
+        'description': 'Get the time worked for the specified time period',
+        'allowed_parameters': ['today', 'week', 'month']
     }
 }
 
@@ -177,6 +182,10 @@ def sign_up(slack_request_object):
     user = User(slack_request_object.user_id, slack_request_object.user_name)
     result = user.save()
 
+    # Create the objects associated to the user
+    user_config = Config(user.id, False)
+    user_config.save()
+
     # Communicate the result of the user creation operation
     if result == cd.SUCCESS:
         slack.post_ephemeral_response_message(msg.ADD_USER_SUCCESS, slack_request_object.response_url)
@@ -240,6 +249,25 @@ def clock(slack_request_object, user_data):
     # Update the last registration data from that user
     user_data.last_registration_date = get_current_date_time()
     user_data.update()
+
+    return empty_response()
+
+
+@app.route(var.TIME_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@validate_command_parameters
+@command_monitoring
+def time(slack_request_object, user_data):
+    """Endpoint to get the worked time for the specified time period"""
+    time_range = slack_request_object.command_parameters[0]
+    response_url = slack_request_object.response_url
+
+    # Calculate the worked time
+    worked_time = calculate_worked_time(user_data.id, time_range)
+
+    # Communicate the result
+    slack.post_ephemeral_response_message(msg.build_worked_time_message(time_range, worked_time), response_url)
 
     return empty_response()
 
