@@ -1,5 +1,5 @@
-from clockzy.lib.db.database_interface import get_last_clock_from_user
-
+from clockzy.lib.db.database_interface import get_last_clock_from_user, get_clock_data_in_time_range
+from clockzy.lib.utils import time
 
 IN_ACTION = 'in'
 PAUSE_ACTION = 'pause'
@@ -42,3 +42,54 @@ def user_can_clock_this_action(user_id, action):
                        ' clock action')
 
     return (True, None)
+
+
+def calculate_worked_time(user_id, time_range):
+    """Calculate the worked time (using the clocking data) in the specified time range.
+
+    Args:
+        user_id (str): User identifier for searching the clocking data and calculating the worked time.
+        time_range (str): enum: [today, week, month].
+
+    Returns:
+        str: Worked time in the following format [x]h [y]m
+    """
+    if time_range == 'today':
+        lower_limit_datetime = f"{time.get_current_date()} 00:00:00"
+    elif time_range == 'week':
+        lower_limit_datetime = time.get_first_week_day()
+    else:  # Month
+        lower_limit_datetime = time.get_first_month_day()
+
+    upper_limit_date_time = time.get_current_date_time()
+
+    # Get the clocking objects
+    clock_data = get_clock_data_in_time_range(user_id, lower_limit_datetime, upper_limit_date_time)
+
+    if len(clock_data) == 0:
+        return time.get_time_hh_mm_from_seconds(0)
+
+    # Calculate the number of worked seconds
+    worked_seconds = 0
+    before_action = ''
+    before_action_datetime = ''
+
+    for clock_item in clock_data:
+        if (clock_item.action.lower() == PAUSE_ACTION and before_action == IN_ACTION) or \
+           (clock_item.action.lower() == OUT_ACTION and before_action == IN_ACTION) or \
+           (clock_item.action.lower() == OUT_ACTION and before_action == RETURN_ACTION) or \
+           (clock_item.action.lower() == PAUSE_ACTION and before_action == RETURN_ACTION):
+            worked_seconds += time.get_time_difference(before_action_datetime,
+                                                       time.datetime_to_str(clock_item.date_time))
+        before_action = clock_item.action.lower()
+        before_action_datetime = time.datetime_to_str(clock_item.date_time)
+
+    # Add the time remaining until now before pausing or exiting (time worked but not clocked)
+    last_clocked_action = clock_data[-1].action.lower()
+    last_clocked_datetime = time.datetime_to_str(clock_data[-1].date_time)
+
+    if last_clocked_action != OUT_ACTION and last_clocked_action != PAUSE_ACTION:
+        last_non_clocked_time = time.get_time_difference(last_clocked_datetime, time.get_current_date_time())
+        worked_seconds += last_non_clocked_time
+
+    return time.get_time_hh_mm_from_seconds(worked_seconds)

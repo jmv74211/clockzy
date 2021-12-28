@@ -196,3 +196,35 @@ def get_config_object(user_id):
     config_object = Config(user_id, config_data[0][1])
 
     return config_object
+
+
+def get_clock_data_in_time_range(user_id, datetime_from, datetime_to):
+    """Get all the records of the user, made between the two indicated dates.
+
+    Args:
+        user_id (str): User identifier to get the data.
+        datetime_from (str): Lower datetime limit.
+        datetime_to (str): Upper datetimelimit.
+
+    Returns:
+        List(Clock): Clock data list.
+        None: If the user does not have any clocking data betweeen the specified range time.
+    """
+    from clockzy.lib.db.db_schema import CLOCK_TABLE
+    from clockzy.lib.models.clock import Clock
+
+    query = f"SELECT * FROM {CLOCK_TABLE} WHERE user_id='{user_id}' AND date_time between '{datetime_from}' and " \
+            f"'{datetime_to}'"
+    clock_data = run_query(query)
+
+    if len(clock_data) == 0:
+        return []
+
+    clock_objects = []
+
+    for clock_item in clock_data:
+        clock = Clock(clock_item[1], clock_item[2], clock_item[3])
+        clock.id = clock_item[0]
+        clock_objects.append(clock)
+
+    return clock_objects

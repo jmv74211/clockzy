@@ -1,10 +1,16 @@
 import pytest
+import os
 
 from clockzy.lib.models.user import User
 from clockzy.lib.models.clock import Clock
 from clockzy.lib.models.command_history import CommandHistory
 from clockzy.lib.models.config import Config
 from clockzy.lib.models.alias import Alias
+from clockzy.lib.utils.file import read_json
+from clockzy.lib.test_framework.database import no_intratime_user_parameters
+
+
+CLOCK_TEST_DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'clock_data.json')
 
 
 @pytest.fixture
@@ -84,3 +90,24 @@ def add_pre_alias(alias_parameters):
     alias = Alias(**alias_parameters)
     alias.save()
     yield alias.id
+
+
+@pytest.fixture
+def add_clock_test_data():
+    """Fixture to add the testing clock data to the DB"""
+    # Read clock data from json data file
+    clock_data = read_json(CLOCK_TEST_DATA_FILE)
+
+    # Add the test user
+    clock_user = User(**no_intratime_user_parameters)
+    clock_user.save()
+
+    # Add the clocking data
+    for item in clock_data:
+        clock = Clock(item['user_id'], item['action'], item['date_time'])
+        clock.save()
+
+    yield
+
+    # Delete the test user and all its data
+    clock_user.delete()
