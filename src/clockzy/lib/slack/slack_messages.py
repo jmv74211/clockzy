@@ -1,5 +1,5 @@
 from clockzy.lib.slack import slack_block_builder as bb
-from clockzy.lib.db.database_interface import get_config_object
+from clockzy.lib.db.database_interface import get_config_object, get_clock_data_in_time_range
 from clockzy.lib.utils import time
 from clockzy.lib.clocking import calculate_worked_time
 
@@ -133,6 +133,64 @@ def build_time_history_message(user_id, time_range):
         bb.write_slack_divider(),
         bb.write_slack_markdown(worked_time_output)
     ]
+
+    return blocks
+
+
+def build_clock_history_message(user_id, time_range):
+    """Build the slack message when a user request to know its clock history.
+
+    Args:
+        user_id (str): User identifier to calculate the worked time.
+        time_range (str): Enum [today, week, month]
+
+    Returns:
+        str: Slack message.
+    """
+    from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
+                (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
+    header = f"{'-'*27} *{time_range.upper()} HISTORY* {'-'*27}\n\n:calendar: From _*{from_time}*_ to " \
+             f"_*{time.get_current_date_time()}*_ :calendar:\n"
+
+    lower_datetime = time.get_lower_time_from_time_range(time_range)
+    upper_datetime = time.get_current_date_time()
+    working_days = time.get_working_days(lower_datetime, upper_datetime)
+    clock_history_output_list = []
+    output_list_elements = 0
+
+    # Build the block messages content. Create a new block message every 10 days to avoid the character text block limit
+    for index, worked_day in enumerate(reversed(working_days)):
+        init_datetime = worked_day
+        end_datetime = f"{worked_day.split(' ')[0]} 23:59:59"
+        clocking_data = get_clock_data_in_time_range(user_id, init_datetime, end_datetime)
+        clock_history_output = ''
+        if len(clocking_data) > 0:
+            clock_history_output += f"• *{worked_day.split(' ')[0]}*:\n"
+            for clock_item in clocking_data:
+                clock_history_output += f"{' ' * 6}• {clock_item.action.upper()}: {clock_item.date_time}\n"
+        else:
+            clock_history_output += f"• *{worked_day.split(' ')[0]}*: :warning: No clocking data for this day " \
+                                    ':warning:\n'
+
+        # Add the message to the block item
+        if len(clock_history_output_list) == 0:
+            clock_history_output_list.append(clock_history_output)
+        elif index % 10 == 0:
+            clock_history_output_list.append(clock_history_output)
+            output_list_elements += 1
+        else:
+            clock_history_output_list[output_list_elements] += clock_history_output
+
+    # Build the block messages
+    blocks = [
+        bb.write_slack_divider(),
+        bb.write_slack_markdown(header),
+        bb.write_slack_divider(),
+    ]
+
+    # Write a slack markdown block for each split message
+    for item in clock_history_output_list:
+        blocks.append(bb.write_slack_markdown(item))
 
     return blocks
 

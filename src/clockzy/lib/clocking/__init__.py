@@ -52,6 +52,8 @@ def calculate_worked_time(user_id, time_range=None, lower_limit_datetime=None, u
     Args:
         user_id (str): User identifier for searching the clocking data and calculating the worked time.
         time_range (str): enum: [today, week, month].
+        lower_limit_datetime (str): Upper limit datetime in format %Y-%m-%d %H:%M:%S
+        upper_limit_datetime (str): Upper limit datetime  in format %Y-%m-%d %H:%M:%S
 
     Returns:
         str: Worked time in the following format [x]h [y]m
