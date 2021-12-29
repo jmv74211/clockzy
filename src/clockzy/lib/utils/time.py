@@ -5,6 +5,9 @@ DAYS = 'day'
 HOURS = 'hour'
 MINUTES = 'minute'
 SECONDS = 'second'
+TODAY = 'today'
+WEEK = 'week'
+MONTH = 'month'
 
 
 def get_current_date_time():
@@ -138,3 +141,68 @@ def datetime_to_str(datetime):
         str: Date string in format %Y-%m-%d %H:%M:%S
     """
     return datetime.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_lower_time_from_time_range(time_range):
+    """Get the start date of the specified time range.
+
+    Args:
+        time_range (str): Enum [today, week, month].
+
+    Returns:
+        str: Date string in format %Y-%m-%d 00:00:00
+    """
+    if time_range == 'today':
+        lower_limit_datetime = f"{get_current_date()} 00:00:00"
+    elif time_range == 'week':
+        lower_limit_datetime = get_first_week_day()
+    else:  # Month
+        lower_limit_datetime = get_first_month_day()
+
+    return lower_limit_datetime
+
+
+def get_working_days(datetime_from, datetime_to, excluded=(6, 7)):
+    """Get all dates between Monday and Friday for the specified time range.
+
+     Args:
+        datetime_from (str): Upper limit datetime in format %Y-%m-%d %H:%M:%S
+        datetime_to (str): Upper limit datetime  in format %Y-%m-%d %H:%M:%S
+        excluded (tuple): Excluded days.
+
+    Returns:
+        list(str): List of dates in format %Y-%m-%d 00:00:00
+    """
+    initial_datetime = datetime.strptime(datetime_from, '%Y-%m-%d %H:%M:%S')
+    end_datetime = datetime.strptime(datetime_to, '%Y-%m-%d %H:%M:%S')
+    days = []
+
+    while initial_datetime.date() <= end_datetime.date():
+        if initial_datetime.isoweekday() not in excluded:
+            days.append(datetime.strftime(initial_datetime, '%Y-%m-%d %H:%M:%S'))
+        initial_datetime += timedelta(days=1)
+
+    return days
+
+
+def sum_hh_mm_time(time_1, time_2):
+    """Sum two times in the following format: 0h 0m
+
+    Args:
+        time_1 (str): Time 1 in format 0h 0m
+        time_2 (str): Time 2 in format 0h 0m
+
+    Returns:
+        str: Sum of the specified times in format 0h 0m
+    """
+    t1_hour = int(time_1.split('h')[0])
+    t1_min = int(time_1.split(' ')[1].split('m')[0])
+    t2_hour = int(time_2.split('h')[0])
+    t2_min = int(time_2.split(' ')[1].split('m')[0])
+
+    time_1_object = timedelta(hours=t1_hour, minutes=t1_min)
+    time_2_object = timedelta(hours=t2_hour, minutes=t2_min)
+
+    result = (time_1_object + time_2_object).total_seconds()
+
+    return get_time_hh_mm_from_seconds(int(result))
