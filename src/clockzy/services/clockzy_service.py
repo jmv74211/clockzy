@@ -43,6 +43,10 @@ ALLOWED_COMMANDS = {
     var.TIME_REQUEST: {
         'description': 'Get the time worked for the specified time period',
         'allowed_parameters': ['today', 'week', 'month']
+    },
+    var.TIME_HISTORY_REQUEST: {
+        'description': 'Get the time worked for the specified time period',
+        'allowed_parameters': ['today', 'week', 'month']
     }
 }
 
@@ -259,15 +263,32 @@ def clock(slack_request_object, user_data):
 @validate_command_parameters
 @command_monitoring
 def time(slack_request_object, user_data):
-    """Endpoint to get the worked time for the specified time period"""
+    """Endpoint to get the worked time for the specified time range"""
     time_range = slack_request_object.command_parameters[0]
     response_url = slack_request_object.response_url
 
     # Calculate the worked time
-    worked_time = calculate_worked_time(user_data.id, time_range)
+    worked_time = calculate_worked_time(user_data.id, time_range=time_range)
 
     # Communicate the result
     slack.post_ephemeral_response_message(msg.build_worked_time_message(time_range, worked_time), response_url)
+
+    return empty_response()
+
+
+@app.route(var.TIME_HISTORY_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@validate_command_parameters
+@command_monitoring
+def time_history(slack_request_object, user_data):
+    """Endpoint to get the worked time history for the specified time range"""
+    time_range = slack_request_object.command_parameters[0]
+    response_url = slack_request_object.response_url
+
+    # Get the clock data from the specified time range
+    worked_time_history_message = msg.build_time_history_message(user_data.id, time_range)
+    slack.post_ephemeral_response_message(worked_time_history_message, response_url, 'blocks')
 
     return empty_response()
 

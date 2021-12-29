@@ -1,5 +1,7 @@
 from clockzy.lib.slack import slack_block_builder as bb
 from clockzy.lib.db.database_interface import get_config_object
+from clockzy.lib.utils import time
+from clockzy.lib.clocking import calculate_worked_time
 
 
 def build_success_message(message):
@@ -86,9 +88,53 @@ def build_worked_time_message(time_range, worked_time):
     Returns:
         str: Slack message.
     """
-    time_string = 'this week' if time_range == 'week' else ('this month' if time_range == 'month' else time_range)
+    time_string = 'this week' if time_range == time.WEEK else ('this month' if time_range == time.MONTH else time_range)
 
     return f":timer_clock: Your working time {time_string} is *{worked_time}* :timer_clock:"
+
+
+def build_time_history_message(user_id, time_range):
+    """Build the slack message when a user request to know the worked time history.
+
+    Args:
+        user_id (str): User identifier to calculate the worked time.
+        time_range (str): Enum [today, week, month]
+
+    Returns:
+        str: Slack message.
+    """
+    from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
+                (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
+    header = f"{'-'*27} *{time_range.upper()} HISTORY* {'-'*27}\n\n:calendar: From _*{from_time}*_ to " \
+             f"_*{time.get_current_date_time()}*_ :calendar:\n"
+
+    lower_datetime = time.get_lower_time_from_time_range(time_range)
+    upper_datetime = time.get_current_date_time()
+    working_days = time.get_working_days(lower_datetime, upper_datetime)
+    worked_time_output = ''
+    total_worked_time = '0h 0m'
+
+    # Calculate the time worked for each day of the selected range and add it to the output
+    for worked_day in reversed(working_days):
+        init_datetime = worked_day
+        end_datetime = f"{worked_day.split(' ')[0]} 23:59:59"
+        worked_time = calculate_worked_time(user_id, lower_limit_datetime=init_datetime,
+                                            upper_limit_datetime=end_datetime)
+        worked_time_output += f"*• {worked_day}*: {worked_time}\n"
+        total_worked_time = time.sum_hh_mm_time(total_worked_time, worked_time)
+
+    # Add the total worked time to the header message
+    header += f":timer_clock: Total worked: *{total_worked_time}* :timer_clock:\n"
+
+    # Build the block messages
+    blocks = [
+        bb.write_slack_divider(),
+        bb.write_slack_markdown(header),
+        bb.write_slack_divider(),
+        bb.write_slack_markdown(worked_time_output)
+    ]
+
+    return blocks
 
 
 ERROR_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/x.png'

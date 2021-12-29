@@ -44,8 +44,10 @@ def user_can_clock_this_action(user_id, action):
     return (True, None)
 
 
-def calculate_worked_time(user_id, time_range):
+def calculate_worked_time(user_id, time_range=None, lower_limit_datetime=None, upper_limit_datetime=None):
     """Calculate the worked time (using the clocking data) in the specified time range.
+
+    Note: You can specify the time_range or the lower_limit and upper_limit.
 
     Args:
         user_id (str): User identifier for searching the clocking data and calculating the worked time.
@@ -54,17 +56,12 @@ def calculate_worked_time(user_id, time_range):
     Returns:
         str: Worked time in the following format [x]h [y]m
     """
-    if time_range == 'today':
-        lower_limit_datetime = f"{time.get_current_date()} 00:00:00"
-    elif time_range == 'week':
-        lower_limit_datetime = time.get_first_week_day()
-    else:  # Month
-        lower_limit_datetime = time.get_first_month_day()
-
-    upper_limit_date_time = time.get_current_date_time()
+    if time_range:
+        lower_limit_datetime = time.get_lower_time_from_time_range(time_range)
+        upper_limit_datetime = time.get_current_date_time()
 
     # Get the clocking objects
-    clock_data = get_clock_data_in_time_range(user_id, lower_limit_datetime, upper_limit_date_time)
+    clock_data = get_clock_data_in_time_range(user_id, lower_limit_datetime, upper_limit_datetime)
 
     if len(clock_data) == 0:
         return time.get_time_hh_mm_from_seconds(0)
