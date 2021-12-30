@@ -118,8 +118,7 @@ def build_time_history_message(user_id, time_range):
     for worked_day in reversed(working_days):
         init_datetime = worked_day
         end_datetime = f"{worked_day.split(' ')[0]} 23:59:59"
-        worked_time = calculate_worked_time(user_id, lower_limit_datetime=init_datetime,
-                                            upper_limit_datetime=end_datetime)
+        worked_time = calculate_worked_time(user_id, lower_limit=init_datetime, upper_limit=end_datetime)
         worked_time_output += f"*• {worked_day}*: {worked_time}\n"
         total_worked_time = time.sum_hh_mm_time(total_worked_time, worked_time)
 
@@ -154,6 +153,8 @@ def build_clock_history_message(user_id, time_range):
 
     lower_datetime = time.get_lower_time_from_time_range(time_range)
     upper_datetime = time.get_current_date_time()
+    worked_time = calculate_worked_time(user_id, lower_limit=lower_datetime, upper_limit=upper_datetime)
+    header += f":timer_clock: Total worked: *{worked_time}* :timer_clock:\n"
     working_days = time.get_working_days(lower_datetime, upper_datetime)
     clock_history_output_list = []
     output_list_elements = 0
@@ -185,7 +186,7 @@ def build_clock_history_message(user_id, time_range):
     blocks = [
         bb.write_slack_divider(),
         bb.write_slack_markdown(header),
-        bb.write_slack_divider(),
+        bb.write_slack_divider()
     ]
 
     # Write a slack markdown block for each split message
@@ -193,6 +194,29 @@ def build_clock_history_message(user_id, time_range):
         blocks.append(bb.write_slack_markdown(item))
 
     return blocks
+
+
+def build_command_help_message():
+    """Build the slack message when a user request to know the slack available commands.
+
+    Returns:
+        str: Slack message.
+    """
+    from clockzy.services.clockzy_service import ALLOWED_COMMANDS
+
+    message = "Allowed commands and values:\n"
+
+    for command, data in ALLOWED_COMMANDS.items():
+        if len(data['allowed_parameters']) > 0:
+            message += f"- *{command}*: {data['description']}\n {' ' * 10}_Accepted parameters_:" \
+                    f" [`{', '.join(str(param) for param in data['allowed_parameters'])}`]\n"
+        else:
+            message += f"- *{command}*: {data['description']}\n"
+
+    return [bb.write_slack_markdown(message)]
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
 
 
 ERROR_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/x.png'

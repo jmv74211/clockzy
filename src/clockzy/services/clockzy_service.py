@@ -51,6 +51,10 @@ ALLOWED_COMMANDS = {
     var.CLOCK_HISTORY_REQUEST: {
         'description': 'Get the clock history data for the specified time period',
         'allowed_parameters': ['today', 'week', 'month']
+    },
+    var.TODAY_INFO_REQUEST: {
+        'description': 'Get total time worked and clockings made today',
+        'allowed_parameters': []
     }
 }
 
@@ -310,6 +314,32 @@ def clock_history(slack_request_object, user_data):
     # Get the clock data from the specified time range
     clock_history_message = msg.build_clock_history_message(user_data.id, time_range)
     slack.post_ephemeral_response_message(clock_history_message, response_url, 'blocks')
+
+    return empty_response()
+
+
+@app.route(var.TODAY_INFO_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@command_monitoring
+def today_info(slack_request_object, user_data):
+    """Endpoint to show the clock history and worked time for today"""
+    response_url = slack_request_object.response_url
+
+    # Get the clock data for today
+    clock_history_message = msg.build_clock_history_message(user_data.id, 'today')
+    slack.post_ephemeral_response_message(clock_history_message, response_url, 'blocks')
+
+    return empty_response()
+
+
+@app.route(var.COMMAND_HELP_REQUEST, methods=['POST'])
+@validate_slack_request
+def command_help(slack_request_object):
+    """Endpoint to show the available commands of the clockzy app"""
+    response_url = slack_request_object.response_url
+    command_help_message = msg.build_command_help_message()
+    slack.post_ephemeral_response_message(command_help_message, response_url, 'blocks')
 
     return empty_response()
 
