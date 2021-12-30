@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, make_response
 from http import HTTPStatus
 from functools import wraps
 
-from clockzy.lib.db.db_schema import USER_TABLE
+from clockzy.lib.db.db_schema import USER_TABLE, ALIAS_TABLE
 from clockzy.lib.global_vars import slack_vars as var
 from clockzy.lib.messages import api_responses as ar
 from clockzy.lib.models.slack_request import SlackRequest
@@ -10,13 +10,14 @@ from clockzy.lib.models.user import User
 from clockzy.lib.models.clock import Clock
 from clockzy.lib.models.command_history import CommandHistory
 from clockzy.lib.models.config import Config
+from clockzy.lib.models.alias import Alias
 from clockzy.lib.handlers import codes as cd
 from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
 from clockzy.lib.slack import slack_messages as msg
 from clockzy.lib.db import db_schema as dbs
 from clockzy.lib.utils.time import get_current_date_time
-from clockzy.lib.db.database_interface import item_exists, get_user_object
+from clockzy.lib.db.database_interface import item_exists, get_user_object, get_database_data_from_objects
 from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_time
 
 
@@ -26,35 +27,54 @@ app = Flask(__name__)
 ALLOWED_COMMANDS = {
     var.ECHO_REQUEST: {
         'description': 'Development endpoint',
-        'allowed_parameters': []
+        'allowed_parameters': [],
+        'num_parameters': 0,
     },
     var.SIGN_UP_REQUEST: {
         'description': 'Sign up for this app.',
-        'allowed_parameters': []
+        'allowed_parameters': [],
+        'num_parameters': 0,
     },
     var.DELETE_USER_REQUEST: {
         'description': 'Delete your user from this app.',
-        'allowed_parameters': []
+        'allowed_parameters': [],
+        'num_parameters': 0,
     },
     var.CLOCK_REQUEST: {
         'description': 'Register a clocking action.',
-        'allowed_parameters': ['in', 'pause', 'return', 'out']
+        'allowed_parameters': ['in', 'pause', 'return', 'out'],
+        'free_parameters': False,
+        'num_parameters': 1
     },
     var.TIME_REQUEST: {
         'description': 'Get the time worked for the specified time period',
-        'allowed_parameters': ['today', 'week', 'month']
+        'allowed_parameters': ['today', 'week', 'month'],
+        'free_parameters': False,
+        'num_parameters': 1
     },
     var.TIME_HISTORY_REQUEST: {
         'description': 'Get the time worked history for the specified time period',
-        'allowed_parameters': ['today', 'week', 'month']
+        'allowed_parameters': ['today', 'week', 'month'],
+        'free_parameters': False,
+        'num_parameters': 1
     },
     var.CLOCK_HISTORY_REQUEST: {
         'description': 'Get the clock history data for the specified time period',
-        'allowed_parameters': ['today', 'week', 'month']
+        'allowed_parameters': ['today', 'week', 'month'],
+        'free_parameters': False,
+        'num_parameters': 1
     },
     var.TODAY_INFO_REQUEST: {
         'description': 'Get total time worked and clockings made today',
-        'allowed_parameters': []
+        'allowed_parameters': [],
+        'num_parameters': 0
+    },
+    var.ADD_ALIAS_REQUEST: {
+        'description': 'Add an alias for a given user name.',
+        'allowed_parameters': [],
+        'free_parameters': True,
+        'num_parameters': 2,
+        'parameters_description': '<user_name> <new_alias_name>'
     }
 }
 
@@ -138,13 +158,24 @@ def validate_command_parameters(func):
             slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
             return empty_response()
 
-        # Check if the specified parameter is allowed
-        if len(command_parameters) == 0 and len(ALLOWED_COMMANDS[command]['allowed_parameters']) > 0 or \
-           command_parameters[0] not in ALLOWED_COMMANDS[command]['allowed_parameters']:
-            parameter_error = f"`{command}` command expects one of the following parameters: " \
-                              f"`{ALLOWED_COMMANDS[command]['allowed_parameters']}`"
-            slack.post_ephemeral_response_message(msg.build_error_message(parameter_error), response_url)
-            return empty_response()
+        # If commands parameters are expected, then check them.
+        if ALLOWED_COMMANDS[command]['num_parameters'] > 0:
+            command_data = ALLOWED_COMMANDS[command]
+            # Check that the number of expected parameters is correct (Extra args wont be processed)
+            if len(command_parameters) < command_data['num_parameters']:
+                parameters = command_data['allowed_parameters'] if len(command_data['allowed_parameters']) > 0 else \
+                    command_data['parameters_description']
+                parameters_error = f"`{command}` command expects *{command_data['num_parameters']}* " \
+                                   f"parameter(s): `{parameters}`"
+                slack.post_ephemeral_response_message(msg.build_error_message(parameters_error), response_url)
+                return empty_response()
+
+            # Check if the parameter value is correct when it is an enumerated one.
+            if not command_data['free_parameters'] and command_parameters[0] not in command_data['allowed_parameters']:
+                parameters_error = f"`{command}` command expects one of the following parameters value: " \
+                                   f"`{command_data['allowed_parameters']}`"
+                slack.post_ephemeral_response_message(msg.build_error_message(parameters_error), response_url)
+                return empty_response()
 
         return func(*args, **kwargs)
 
@@ -340,6 +371,42 @@ def command_help(slack_request_object):
     response_url = slack_request_object.response_url
     command_help_message = msg.build_command_help_message()
     slack.post_ephemeral_response_message(command_help_message, response_url, 'blocks')
+
+    return empty_response()
+
+
+@app.route(var.ADD_ALIAS_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@validate_command_parameters
+@command_monitoring
+def add_alias(slack_request_object, user_data):
+    response_url = slack_request_object.response_url
+    user_name = slack_request_object.command_parameters[0]
+    alias_name = slack_request_object.command_parameters[1]
+    user_data    = get_database_data_from_objects({'user_name': user_name}, USER_TABLE)
+
+    if len(user_data) == 0:
+        error_message = f"Could not find an user with `{user_name}` username"
+        slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+        return empty_response()
+
+    if item_exists({'alias': alias_name}, ALIAS_TABLE):
+        error_message = f"The alias `{alias_name}` is already registered as an alias"
+        slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+        return empty_response()
+
+    user_id = user_data[0][0]
+    alias = Alias(user_id, alias_name)
+    result = alias.save()
+
+    # Communicate the result of the user creation operation
+    if result == cd.SUCCESS:
+        success_message = f"The `{alias_name}` alias has been registered successfully for the `{user_name}` user name."
+        slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
+    else:
+        error_message = 'Could not create the alias, please contact with the app administrator'
+        slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
 
     return empty_response()
 
