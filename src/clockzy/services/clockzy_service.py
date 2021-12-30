@@ -80,6 +80,13 @@ ALLOWED_COMMANDS = {
         'description': 'Get all user aliases.',
         'allowed_parameters': [],
         'num_parameters': 0,
+    },
+    var.CHECK_USER_STATUS_REQUEST: {
+        'description': 'Check the user status',
+        'allowed_parameters': [],
+        'free_parameters': True,
+        'num_parameters': 1,
+        'parameters_description': '<user_name_or_alias>'
     }
 }
 
@@ -428,6 +435,35 @@ def get_aliases(slack_request_object, user_data):
     response_url = slack_request_object.response_url
     aliases_message = msg.build_get_aliases_message()
     slack.post_ephemeral_response_message(aliases_message, response_url, 'blocks')
+
+    return empty_response()
+
+
+@app.route(var.CHECK_USER_STATUS_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@validate_command_parameters
+@command_monitoring
+def get_user_status(slack_request_object, user_data):
+    """Endpoint to query the user status given an username or alias name"""
+    response_url = slack_request_object.response_url
+    user_name = slack_request_object.command_parameters[0]
+
+    # Check if the user name or alias exist
+    if not item_exists({'user_name': user_name}, USER_TABLE) and not item_exists({'alias': user_name}, ALIAS_TABLE):
+        error_message = f"The `{user_name}` user_name or alias does not exist."
+        slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+        return empty_response()
+
+    # Get the user id
+    user_data = get_database_data_from_objects({'user_name': user_name}, USER_TABLE)
+    if len(user_data) == 0:
+        user_id = get_database_data_from_objects({'alias': user_name}, ALIAS_TABLE)[0][1]
+    else:
+        user_id = user_data[0][0]
+
+    slack_message = msg.build_user_status_message(user_id, user_name)
+    slack.post_ephemeral_response_message(slack_message, response_url)
 
     return empty_response()
 

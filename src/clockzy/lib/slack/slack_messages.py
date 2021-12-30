@@ -1,8 +1,10 @@
 from clockzy.lib.slack import slack_block_builder as bb
-from clockzy.lib.db.database_interface import run_query, get_config_object, get_clock_data_in_time_range
+from clockzy.lib.db.database_interface import run_query, get_config_object, get_clock_data_in_time_range, \
+                                              get_last_clock_from_user
 from clockzy.lib.utils import time
 from clockzy.lib.clocking import calculate_worked_time
 from clockzy.lib.db.db_schema import ALIAS_TABLE, USER_TABLE
+from clockzy.lib.clocking import IN_ACTION, PAUSE_ACTION, RETURN_ACTION, OUT_ACTION
 
 
 def build_success_message(message):
@@ -256,6 +258,29 @@ def build_get_aliases_message():
     blocks.append(bb.write_slack_markdown(message))
 
     return blocks
+
+
+def build_user_status_message(user_id, user_name):
+    """Build the slack message when a user query the status of another user.
+
+    Args:
+        user_id (str): User identifier queried.
+        user_name (str): User name or alias queried.
+
+    Returns:
+        str: Slack message.
+    """
+    last_clock = get_last_clock_from_user(user_id)
+
+    if last_clock is None:
+        return f":warning: The user `{user_name}` does not have any clock data :warning:"
+
+    if last_clock.action.lower() == IN_ACTION or last_clock.action.lower() == RETURN_ACTION:
+        return f":large_green_circle: The user `{user_name}` is available :large_green_circle:"
+    elif last_clock.action.lower() == PAUSE_ACTION:
+        return f":large_yellow_circle: The user `{user_name}` is absent, but will return later :large_yellow_circle:"
+    else:
+        return f":red_circle: The user `{user_name}` is not available :red_circle:"
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
