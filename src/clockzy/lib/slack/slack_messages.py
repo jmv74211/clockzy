@@ -1,7 +1,8 @@
 from clockzy.lib.slack import slack_block_builder as bb
-from clockzy.lib.db.database_interface import get_config_object, get_clock_data_in_time_range
+from clockzy.lib.db.database_interface import run_query, get_config_object, get_clock_data_in_time_range
 from clockzy.lib.utils import time
 from clockzy.lib.clocking import calculate_worked_time
+from clockzy.lib.db.db_schema import ALIAS_TABLE, USER_TABLE
 
 
 def build_success_message(message):
@@ -216,6 +217,45 @@ def build_command_help_message():
             message += f"{' ' * 10}_Parameters_: `{data['parameters_description']}`"
 
     return [bb.write_slack_markdown(message)]
+
+
+def build_get_aliases_message():
+    """Build the slack message when a user request to know the registered aliases.
+
+    Returns:
+        str: Slack message.
+    """
+    header = f"{'-'*27} *ALIASES* {'-'*27}\n\n"
+    query_ids = f"SELECT DISTINCT user_id FROM {ALIAS_TABLE}"
+    data_ids = run_query(query_ids)
+    message = ''
+
+    blocks = [
+        bb.write_slack_divider(),
+        bb.write_slack_markdown(header),
+        bb.write_slack_divider()
+    ]
+
+    if len(data_ids) == 0:
+        blocks.append(bb.write_slack_markdown(':warning: No registered aliases found :warning:'))
+        return blocks
+
+    # Iterate over all users in alias data
+    for user_id in data_ids:
+        user_name = run_query(f"SELECT user_name FROM {USER_TABLE} WHERE id='{user_id[0]}'")[0][0]
+        message += f"• *{user_name}*: [ "
+        aliases = run_query(f"SELECT alias FROM {ALIAS_TABLE} WHERE user_id='{user_id[0]}'")
+        # Get all aliases from that user
+        for alias in aliases:
+            message += f"_{ alias[0]}_, "
+
+        # Remove ', ' from the end
+        message = message[:-2]
+        message += ' ]\n'
+
+    blocks.append(bb.write_slack_markdown(message))
+
+    return blocks
 
 
 # -------------------------------------------------------------------------------------------------------------------- #

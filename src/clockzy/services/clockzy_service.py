@@ -75,6 +75,11 @@ ALLOWED_COMMANDS = {
         'free_parameters': True,
         'num_parameters': 2,
         'parameters_description': '<user_name> <new_alias_name>'
+    },
+    var.GET_ALIASES_REQUEST: {
+        'description': 'Get all user aliases.',
+        'allowed_parameters': [],
+        'num_parameters': 0,
     }
 }
 
@@ -381,16 +386,19 @@ def command_help(slack_request_object):
 @validate_command_parameters
 @command_monitoring
 def add_alias(slack_request_object, user_data):
+    """Endpoint to add a new user alias"""
     response_url = slack_request_object.response_url
     user_name = slack_request_object.command_parameters[0]
     alias_name = slack_request_object.command_parameters[1]
-    user_data    = get_database_data_from_objects({'user_name': user_name}, USER_TABLE)
+    user_data = get_database_data_from_objects({'user_name': user_name}, USER_TABLE)
 
+    # Check if the specified username exists
     if len(user_data) == 0:
         error_message = f"Could not find an user with `{user_name}` username"
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
         return empty_response()
 
+    # Check if alias is already registered
     if item_exists({'alias': alias_name}, ALIAS_TABLE):
         error_message = f"The alias `{alias_name}` is already registered as an alias"
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
@@ -407,6 +415,19 @@ def add_alias(slack_request_object, user_data):
     else:
         error_message = 'Could not create the alias, please contact with the app administrator'
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+
+    return empty_response()
+
+
+@app.route(var.GET_ALIASES_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@command_monitoring
+def get_aliases(slack_request_object, user_data):
+    """Endpoint to show all user aliases"""
+    response_url = slack_request_object.response_url
+    aliases_message = msg.build_get_aliases_message()
+    slack.post_ephemeral_response_message(aliases_message, response_url, 'blocks')
 
     return empty_response()
 
