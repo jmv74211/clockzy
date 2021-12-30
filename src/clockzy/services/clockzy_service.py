@@ -3,7 +3,7 @@ from http import HTTPStatus
 from functools import wraps
 
 from clockzy.lib.db.db_schema import USER_TABLE, ALIAS_TABLE
-from clockzy.lib.global_vars import slack_vars as var
+from clockzy.lib import global_vars as var
 from clockzy.lib.messages import api_responses as ar
 from clockzy.lib.models.slack_request import SlackRequest
 from clockzy.lib.models.user import User
@@ -14,7 +14,7 @@ from clockzy.lib.models.alias import Alias
 from clockzy.lib.handlers import codes as cd
 from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
-from clockzy.lib.slack import slack_messages as msg
+from clockzy.lib.messages import slack_messages as msg
 from clockzy.lib.db import db_schema as dbs
 from clockzy.lib.utils.time import get_current_date_time
 from clockzy.lib.db.database_interface import item_exists, get_user_object, get_database_data_from_objects
@@ -415,7 +415,7 @@ def add_alias(slack_request_object, user_data):
     alias = Alias(user_id, alias_name)
     result = alias.save()
 
-    # Communicate the result of the user creation operation
+    # Communicate the result of the alias creation operation
     if result == cd.SUCCESS:
         success_message = f"The `{alias_name}` alias has been registered successfully for the `{user_name}` user name."
         slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
