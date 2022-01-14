@@ -287,6 +287,7 @@ def build_user_status_message(user_id, user_name):
 
 
 ERROR_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/x.png'
+WARNING_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/warning.png'
 
 # Add user
 ADD_USER_SUCCESS = build_success_message('The user has been created successfully')

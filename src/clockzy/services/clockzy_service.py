@@ -17,7 +17,8 @@ from clockzy.config import settings
 from clockzy.lib.messages import slack_messages as msg
 from clockzy.lib.db import db_schema as dbs
 from clockzy.lib.utils.time import get_current_date_time
-from clockzy.lib.db.database_interface import item_exists, get_user_object, get_database_data_from_objects
+from clockzy.lib.db.database_interface import item_exists, get_user_object, get_database_data_from_objects, \
+                                              get_config_object
 from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_time
 from clockzy.lib import intratime
 from clockzy.lib.utils import crypt
@@ -279,7 +280,12 @@ def delete_user(slack_request_object, user_data):
 @validate_command_parameters
 @command_monitoring
 def clock(slack_request_object, user_data):
-    """Endpoint to delete a registered user"""
+    """Endpoint to delete a registered user.
+
+    Note: If the user has enabled synchronization with intratime, it will first try to register in that app. If for
+          any reason it cannot be registered, then the registration process is cancelled. In case of success,
+          it continues with the process and registers locally in the clockzy app.
+    """
     action = slack_request_object.command_parameters[0]
     response_url = slack_request_object.response_url
 
@@ -290,7 +296,30 @@ def clock(slack_request_object, user_data):
     if not clock_check[0]:
         error_message = msg.build_block_message('Could not clock your action', clock_check[1], False, msg.ERROR_IMAGE)
         slack.post_ephemeral_response_message(error_message, response_url, 'blocks')
+
         return empty_response()
+
+    # If the user has intratime app linked, then register the action in the intratime API.
+    intratime_enabled = get_config_object(user_data.id).intratime_integration
+    if intratime_enabled:
+        user_email = user_data.email
+        user_password = crypt.decrypt(user_data.password)
+        clocking_status = intratime.clocking(action, user_email, user_password)
+
+        # If the intratime clocking has failed, then display an error message and exit so as not to clock it in clockzy.
+        if clocking_status != cd.SUCCESS:
+            if clocking_status == cd.INTRATIME_AUTH_ERROR:
+                slack_message = msg.build_block_message('Could not clock your action',
+                                                        'Your intratime credentials are not correct. Please update '
+                                                        f"them using the `{var.INTRATIME_SYNC_REQUEST}` command.",
+                                                        False, msg.ERROR_IMAGE)
+            else:
+                slack_message = msg.build_block_message('Could not clock your action',
+                                                        'It seems that the intratime API is not available. Try '
+                                                        'again in a few seconds', False, msg.ERROR_IMAGE)
+            slack.post_ephemeral_response_message(slack_message, response_url, 'blocks')
+
+            return empty_response()
 
     # Save the clock in the DB
     clock = Clock(user_data.id, action, get_current_date_time())
@@ -302,9 +331,17 @@ def clock(slack_request_object, user_data):
                                                               user_data.user_name)
         slack.post_ephemeral_response_message(slack_message, response_url, 'blocks')
     else:
-        slack_message = msg.build_block_message('Could not clock your action', 'Contact with the app administrator',
-                                                False, msg.ERROR_IMAGE)
-        slack.post_ephemeral_response_message(slack_message, response_url)
+        if intratime_enabled:
+            slack_message = msg.build_block_message('Could not clock your action in clockzy app',
+                                                    'The clock has been registered in the Intratime app but not in '
+                                                    'clockzy. Please, contact with the app administrator',
+                                                    False, msg.WARNING_IMAGE)
+        else:
+            slack_message = msg.build_block_message('Could not clock your action', 'Contact with the app administrator',
+                                                    False, msg.ERROR_IMAGE)
+        slack.post_ephemeral_response_message(slack_message, response_url, 'blocks')
+
+        return empty_response()
 
     # Update the last registration data from that user
     user_data.last_registration_date = get_current_date_time()
@@ -477,7 +514,6 @@ def get_user_status(slack_request_object, user_data):
 @validate_slack_request
 @validate_user
 @validate_command_parameters
-@command_monitoring
 def link_intratime_account(slack_request_object, user_data):
     response_url = slack_request_object.response_url
     intratime_user = slack_request_object.command_parameters[0]
@@ -498,7 +534,9 @@ def link_intratime_account(slack_request_object, user_data):
 
     # Update the user configuration and set the intratime integration to True
     user_config = Config(user_data.id, True)
-    if user_config.update() != cd.SUCCESS:
+    user_config.update()
+
+    if not get_config_object(user_data.id).intratime_integration:
         command_error = 'Your user configuration could not be updated, please contact with the app administrator'
         slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
         return empty_response()

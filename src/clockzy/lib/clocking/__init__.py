@@ -1,6 +1,7 @@
 from clockzy.lib.db.database_interface import get_last_clock_from_user, get_clock_data_in_time_range
 from clockzy.lib.utils import time
 
+
 IN_ACTION = 'in'
 PAUSE_ACTION = 'pause'
 RETURN_ACTION = 'return'
