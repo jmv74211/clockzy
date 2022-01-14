@@ -91,12 +91,17 @@ ALLOWED_COMMANDS = {
         'num_parameters': 1,
         'parameters_description': '<user_name_or_alias>'
     },
-    var.INTRATIME_SYNC_REQUEST: {
+    var.ENABLE_INTRATIME_INTEGRATION_REQUEST: {
         'description': 'Link clock registrations to the intratime application',
         'allowed_parameters': [],
         'free_parameters': True,
         'num_parameters': 2,
         'parameters_description': '<intratime_mail> <intratime_password>'
+    },
+    var.DISABLE_INTRATIME_INTEGRATION_REQUEST: {
+        'description': 'Disable the intratime integration',
+        'allowed_parameters': [],
+        'num_parameters': 0
     }
 }
 
@@ -311,8 +316,8 @@ def clock(slack_request_object, user_data):
             if clocking_status == cd.INTRATIME_AUTH_ERROR:
                 slack_message = msg.build_block_message('Could not clock your action',
                                                         'Your intratime credentials are not correct. Please update '
-                                                        f"them using the `{var.INTRATIME_SYNC_REQUEST}` command.",
-                                                        False, msg.ERROR_IMAGE)
+                                                        f"them using the `{var.ENABLE_INTRATIME_INTEGRATION_REQUEST}` "
+                                                        'command', False, msg.ERROR_IMAGE)
             else:
                 slack_message = msg.build_block_message('Could not clock your action',
                                                         'It seems that the intratime API is not available. Try '
@@ -510,11 +515,12 @@ def get_user_status(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.INTRATIME_SYNC_REQUEST, methods=['POST'])
+@app.route(var.ENABLE_INTRATIME_INTEGRATION_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
-def link_intratime_account(slack_request_object, user_data):
+def enable_intratime_integration(slack_request_object, user_data):
+    """Enable the intratime integration. All clockings will be save in intratime too."""
     response_url = slack_request_object.response_url
     intratime_user = slack_request_object.command_parameters[0]
     intratime_password = slack_request_object.command_parameters[1]
@@ -544,6 +550,37 @@ def link_intratime_account(slack_request_object, user_data):
     success_message = 'The linking with the Intratime app has been successful!'
     slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
 
+    return empty_response()
+
+
+@app.route(var.DISABLE_INTRATIME_INTEGRATION_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+def disable_intratime_integration(slack_request_object, user_data):
+    """Disable the intratime integration."""
+    response_url = slack_request_object.response_url
+
+    # Check that the user has the integration activated
+    if not get_config_object(user_data.id).intratime_integration:
+        slack_message = ':warning: You already have it disabled! :warning:'
+        slack.post_ephemeral_response_message(slack_message, response_url)
+        return empty_response()
+
+    # Disable the integration in the config data
+    user_config = Config(user_data.id, False)
+    if user_config.update() != cd.SUCCESS:
+        error_message = 'Could not disabled the intratime integration. Please contact with the app admistrator'
+        slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+        return empty_response()
+
+    # Clean the email and password data
+    user_data.email = None
+    user_data.password = None
+    user_data.update()
+
+    # Send the success message
+    slack.post_ephemeral_response_message(msg.build_success_message('Integration with intratime disabled successfully'),
+                                          response_url)
     return empty_response()
 
 
