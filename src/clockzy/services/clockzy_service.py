@@ -19,6 +19,8 @@ from clockzy.lib.db import db_schema as dbs
 from clockzy.lib.utils.time import get_current_date_time
 from clockzy.lib.db.database_interface import item_exists, get_user_object, get_database_data_from_objects
 from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_time
+from clockzy.lib import intratime
+from clockzy.lib.utils import crypt
 
 
 app = Flask(__name__)
@@ -87,6 +89,13 @@ ALLOWED_COMMANDS = {
         'free_parameters': True,
         'num_parameters': 1,
         'parameters_description': '<user_name_or_alias>'
+    },
+    var.INTRATIME_SYNC_REQUEST: {
+        'description': 'Link clock registrations to the intratime application',
+        'allowed_parameters': [],
+        'free_parameters': True,
+        'num_parameters': 2,
+        'parameters_description': '<intratime_mail> <intratime_password>'
     }
 }
 
@@ -221,18 +230,14 @@ def command_monitoring(func):
 @validate_user
 @command_monitoring
 def echo(slack_request_object, user_data):
-    """Endpoint to check the current server status
-
-    - Input_data: {}
-    - Output_data: {'result': 'Alive'}
-    """
+    """Endpoint to check the current server status"""
     return empty_response()
 
 
 @app.route(var.SIGN_UP_REQUEST, methods=['POST'])
 @validate_slack_request
 def sign_up(slack_request_object):
-    """ Endpoint to register a new user"""
+    """Endpoint to register a new user"""
     # Save the user in the DB
     user = User(slack_request_object.user_id, slack_request_object.user_name)
     result = user.save()
@@ -464,6 +469,42 @@ def get_user_status(slack_request_object, user_data):
 
     slack_message = msg.build_user_status_message(user_id, user_name)
     slack.post_ephemeral_response_message(slack_message, response_url)
+
+    return empty_response()
+
+
+@app.route(var.INTRATIME_SYNC_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@validate_command_parameters
+@command_monitoring
+def link_intratime_account(slack_request_object, user_data):
+    response_url = slack_request_object.response_url
+    intratime_user = slack_request_object.command_parameters[0]
+    intratime_password = slack_request_object.command_parameters[1]
+
+    # Validate the entered intratime credentials
+    if not intratime.check_user_credentials(intratime_user, intratime_password):
+        error_message = f"The entered Intratime credentials are not correct."
+        slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+
+    # Add the intratime credentials to the user data in the DB
+    user_data.email = intratime_user
+    user_data.password = crypt.encrypt(intratime_password)
+    if user_data.update() != cd.SUCCESS:
+        command_error = 'Your intratime credentials could not be updated, please contact with the app administrator'
+        slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
+        return empty_response()
+
+    # Update the user configuration and set the intratime integration to True
+    user_config = Config(user_data.id, True)
+    if user_config.update() != cd.SUCCESS:
+        command_error = 'Your user configuration could not be updated, please contact with the app administrator'
+        slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
+        return empty_response()
+
+    success_message = 'The linking with the Intratime app has been successful!'
+    slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
 
     return empty_response()
 

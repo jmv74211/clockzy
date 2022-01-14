@@ -216,7 +216,7 @@ def build_command_help_message():
             message += f"{' ' * 10}_Accepted parameters_: " \
                        f"[`{', '.join(str(param) for param in data['allowed_parameters'])}`]\n"
         elif 'parameters_description' in data:
-            message += f"{' ' * 10}_Parameters_: `{data['parameters_description']}`"
+            message += f"{' ' * 10}_Parameters_: `{data['parameters_description']}`\n"
 
     return [bb.write_slack_markdown(message)]
 
