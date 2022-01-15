@@ -37,13 +37,13 @@ def validate_message(message):
     return False
 
 
-def post_ephemeral_response_message(message, response_url, mgs_type='text'):
+def post_ephemeral_response_message(message, response_url, message_type='text'):
     """ Function to post a ephemeral message in a slack channel given a response_url.
 
     Args:
         message (str): Message to post.
         response_url (str): Response url from user conversation.
-        mgs_type (str): enum: 'text', 'attachments' or 'blocks' depending on message type
+        message_type (str): enum: 'text', 'attachments' or 'blocks' depending on message type
 
     Returns:
         int:
@@ -57,7 +57,7 @@ def post_ephemeral_response_message(message, response_url, mgs_type='text'):
     if not validate_message(message):
         return codes.INVALID_VALUE
 
-    payload = {mgs_type: message, 'response_type': 'ephemeral'}
+    payload = {message_type: message, 'response_type': 'ephemeral'}
     headers = {'content-type': 'application/json'}
 
     request = requests.post(response_url, json=payload, headers=headers)
