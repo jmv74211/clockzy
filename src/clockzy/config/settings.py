@@ -1,19 +1,21 @@
 # APP SETTINGS file #
+import os
 
 
 # DATABASE CONFIGURATION
 DB_ROOT_USER = 'root'
 DB_ROOT_PASSWORD = 'my_custom_password'
 DB_PORT = 3306
-DB_HOST = 'localhost'  # 'mysql-service'
+DB_HOST = 'mysql-service'
 DB_NAME = 'clockzy'
 
 # SERVICE CONFIGURATION
 APP_PATH = '/app'
 PROTOCOL = 'http'
-DEBUG_MODE = True
+DEBUG_MODE = False
 SLACK_SERVICE_HOST = '0.0.0.0'
 SLACK_SERVICE_PORT = '10050'
+LOGS_PATH = os.path.join(APP_PATH, 'logs')
 
 # SLACK CONFIGURATION
 SLACK_APP_SIGNATURE = "<YOUR_SLACK_APP_SIGNATURE>"

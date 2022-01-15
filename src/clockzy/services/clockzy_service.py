@@ -1,6 +1,8 @@
+import logging
 from flask import Flask, jsonify, request, make_response
 from http import HTTPStatus
 from functools import wraps
+from os.path import join
 
 from clockzy.lib.db.db_schema import USER_TABLE, ALIAS_TABLE
 from clockzy.lib import global_vars as var
@@ -22,10 +24,12 @@ from clockzy.lib.db.database_interface import item_exists, get_user_object, get_
 from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_time
 from clockzy.lib import intratime
 from clockzy.lib.utils import crypt
+from clockzy.lib.messages import logger_messages as lgm
 
 
-app = Flask(__name__)
-
+clockzy_service = Flask(__name__)
+service_logger = logging.getLogger('werkzeug')
+app_logger = logging.getLogger('clockzy')
 
 ALLOWED_COMMANDS = {
     var.ECHO_REQUEST: {
@@ -111,6 +115,19 @@ def empty_response():
     return make_response('', HTTPStatus.OK)
 
 
+def set_logging():
+    """Configure the service and app loggers"""
+    # Set service logs
+    service_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+    service_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_service.log'))
+    service_logger.addHandler(service_file_handler)
+
+    # Set app logs
+    app_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+    app_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_app.log'))
+    app_logger.addHandler(app_file_handler)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                API DECORATORS                                                        #
 # ----------------------------------------------------------------------------------------------------------------------
@@ -125,12 +142,14 @@ def validate_slack_request(func):
         decoded_request_body = slack.decode_slack_args(request.get_data().decode('utf-8'))
         slack_request_object = SlackRequest(headers=request.headers, **decoded_request_body)
         validation = slack_request_object.validate_slack_request_signature(request.get_data())
-
         if validation == cd.NON_SLACK_REQUEST:
+            app_logger.info(lgm.unauthorized_request(request.remote_addr))
             return jsonify({'result': ar.NON_SLACK_REQUEST}), HTTPStatus.UNAUTHORIZED
         elif validation == cd.BAD_SLACK_TIMESTAMP_REQUEST:
+            app_logger.info(lgm.bad_timestamp_signature)
             return jsonify({'result': ar.BAD_SLACK_HEADERS_REQUEST}), HTTPStatus.UNAUTHORIZED
         elif validation == cd.BAD_SLACK_SIGNATURE:
+            app_logger.info(lgm.bad_slack_signature)
             return jsonify({'result': ar.BAD_SLACK_SIGNATURE}), HTTPStatus.UNAUTHORIZED
 
         # Add the slack request object to the function arguments
@@ -149,7 +168,7 @@ def validate_user(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if 'slack_request_object' not in kwargs:
-            print('Programming error, slack_request_object does not exist in the validate_user decorator.')
+            app_logger.info(lgm.missing_slack_request_object('validate_user'))
             return make_response('', HTTPStatus.INTERNAL_SERVER_ERROR)
 
         user_id = kwargs['slack_request_object'].user_id
@@ -172,7 +191,7 @@ def validate_command_parameters(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if 'slack_request_object' not in kwargs:
-            print('Programming error slack_request_object does not exist in the validate_command_parameters decorator.')
+            app_logger.info(lgm.missing_slack_request_object('validate_command_parameters'))
             return make_response('', HTTPStatus.INTERNAL_SERVER_ERROR)
 
         command = kwargs['slack_request_object'].command
@@ -214,13 +233,16 @@ def command_monitoring(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if 'slack_request_object' not in kwargs:
-            print('Programming error, slack_request_object does not exist in the command_monitoring decorator.')
+            app_logger.info(lgm.missing_slack_request_object('command_monitoring'))
             return make_response('', HTTPStatus.INTERNAL_SERVER_ERROR)
 
-        command_history = CommandHistory(kwargs['slack_request_object'].user_id, kwargs['slack_request_object'].command,
-                                         ' '.join(kwargs['slack_request_object'].command_parameters))
+        command = kwargs['slack_request_object'].command
+        command_parameters = ' '.join(kwargs['slack_request_object'].command_parameters)
+        command_history = CommandHistory(kwargs['slack_request_object'].user_id, command, command_parameters)
         command_history.save()
 
+        app_logger.info(lgm.command_monitoring(kwargs['user_data'].user_name, kwargs['user_data'].id,
+                                               f"{command} {command_parameters}"))
         return func(*args, **kwargs)
 
     return wrapper
@@ -231,16 +253,14 @@ def command_monitoring(func):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-@app.route(var.ECHO_REQUEST, methods=['POST'])
+@clockzy_service.route(var.ECHO_REQUEST, methods=['POST'])
 @validate_slack_request
-@validate_user
-@command_monitoring
-def echo(slack_request_object, user_data):
+def echo():
     """Endpoint to check the current server status"""
     return empty_response()
 
 
-@app.route(var.SIGN_UP_REQUEST, methods=['POST'])
+@clockzy_service.route(var.SIGN_UP_REQUEST, methods=['POST'])
 @validate_slack_request
 def sign_up(slack_request_object):
     """Endpoint to register a new user"""
@@ -255,15 +275,17 @@ def sign_up(slack_request_object):
     # Communicate the result of the user creation operation
     if result == cd.SUCCESS:
         slack.post_ephemeral_response_message(msg.ADD_USER_SUCCESS, slack_request_object.response_url)
+        app_logger(lgm.user_created(user_data.user_name, user_data.id))
     elif result == cd.ITEM_ALREADY_EXISTS:
         slack.post_ephemeral_response_message(msg.USER_ALREADY_REGISTERED, slack_request_object.response_url)
     else:
+        app_logger.error(lgm.error_creating_user(user_data.user_name, user_data.id))
         slack.post_ephemeral_response_message(msg.ADD_USER_ERROR, slack_request_object.response_url)
 
     return empty_response()
 
 
-@app.route(var.DELETE_USER_REQUEST, methods=['POST'])
+@clockzy_service.route(var.DELETE_USER_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @command_monitoring
@@ -272,14 +294,16 @@ def delete_user(slack_request_object, user_data):
     result = user_data.delete()
 
     if result == cd.SUCCESS:
+        app_logger(lgm.user_deleted(user_data.user_name, user_data.id))
         slack.post_ephemeral_response_message(msg.DELETE_USER_SUCCESS, slack_request_object.response_url)
     else:
+        app_logger(lgm.error_deleting_user(user_data.user_name, user_data.id))
         slack.post_ephemeral_response_message(msg.DELETE_USER_ERROR, slack_request_object.response_url)
 
     return empty_response()
 
 
-@app.route(var.CLOCK_REQUEST, methods=['POST'])
+@clockzy_service.route(var.CLOCK_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -314,11 +338,13 @@ def clock(slack_request_object, user_data):
         # If the intratime clocking has failed, then display an error message and exit so as not to clock it in clockzy.
         if clocking_status != cd.SUCCESS:
             if clocking_status == cd.INTRATIME_AUTH_ERROR:
+                app_logger.info(lgm.error_intratime_auth(user_data.user_name, user_data.id))
                 slack_message = msg.build_block_message('Could not clock your action',
                                                         'Your intratime credentials are not correct. Please update '
                                                         f"them using the `{var.ENABLE_INTRATIME_INTEGRATION_REQUEST}` "
                                                         'command', False, msg.ERROR_IMAGE)
             else:
+                app_logger.error(lgm.error_intratime_clocking(user_data.user_name, user_data.id, action.upper()))
                 slack_message = msg.build_block_message('Could not clock your action',
                                                         'It seems that the intratime API is not available. Try '
                                                         'again in a few seconds', False, msg.ERROR_IMAGE)
@@ -337,11 +363,13 @@ def clock(slack_request_object, user_data):
         slack.post_ephemeral_response_message(slack_message, response_url, 'blocks')
     else:
         if intratime_enabled:
+            app_logger.error(lgm.error_clockzy_clocking(user_data.user_name, user_data.id, action.upper()))
             slack_message = msg.build_block_message('Could not clock your action in clockzy app',
                                                     'The clock has been registered in the Intratime app but not in '
-                                                    'clockzy. Please, contact with the app administrator',
+                                                    'clockzy app. Please, contact with the app administrator',
                                                     False, msg.WARNING_IMAGE)
         else:
+            app_logger.error(lgm.error_clockzy_clocking(user_data.user_name, user_data.id, action.upper()))
             slack_message = msg.build_block_message('Could not clock your action', 'Contact with the app administrator',
                                                     False, msg.ERROR_IMAGE)
         slack.post_ephemeral_response_message(slack_message, response_url, 'blocks')
@@ -352,10 +380,12 @@ def clock(slack_request_object, user_data):
     user_data.last_registration_date = get_current_date_time()
     user_data.update()
 
+    app_logger.error(lgm.success_clockzy_clocking(user_data.user_name, user_data.id, action.upper()))
+
     return empty_response()
 
 
-@app.route(var.TIME_REQUEST, methods=['POST'])
+@clockzy_service.route(var.TIME_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -374,7 +404,7 @@ def time(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.TIME_HISTORY_REQUEST, methods=['POST'])
+@clockzy_service.route(var.TIME_HISTORY_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -391,7 +421,7 @@ def time_history(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.CLOCK_HISTORY_REQUEST, methods=['POST'])
+@clockzy_service.route(var.CLOCK_HISTORY_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -408,7 +438,7 @@ def clock_history(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.TODAY_INFO_REQUEST, methods=['POST'])
+@clockzy_service.route(var.TODAY_INFO_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @command_monitoring
@@ -423,7 +453,7 @@ def today_info(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.COMMAND_HELP_REQUEST, methods=['POST'])
+@clockzy_service.route(var.COMMAND_HELP_REQUEST, methods=['POST'])
 @validate_slack_request
 def command_help(slack_request_object):
     """Endpoint to show the available commands of the clockzy app"""
@@ -434,7 +464,7 @@ def command_help(slack_request_object):
     return empty_response()
 
 
-@app.route(var.ADD_ALIAS_REQUEST, methods=['POST'])
+@clockzy_service.route(var.ADD_ALIAS_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -444,10 +474,10 @@ def add_alias(slack_request_object, user_data):
     response_url = slack_request_object.response_url
     user_name = slack_request_object.command_parameters[0]
     alias_name = slack_request_object.command_parameters[1]
-    user_data = get_database_data_from_objects({'user_name': user_name}, USER_TABLE)
+    referenced_user_data = get_database_data_from_objects({'user_name': user_name}, USER_TABLE)
 
     # Check if the specified username exists
-    if len(user_data) == 0:
+    if len(referenced_user_data) == 0:
         error_message = f"Could not find an user with `{user_name}` username"
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
         return empty_response()
@@ -458,22 +488,25 @@ def add_alias(slack_request_object, user_data):
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
         return empty_response()
 
-    user_id = user_data[0][0]
+    user_id = referenced_user_data[0][0]
     alias = Alias(user_id, alias_name)
     result = alias.save()
 
     # Communicate the result of the alias creation operation
-    if result == cd.SUCCESS:
-        success_message = f"The `{alias_name}` alias has been registered successfully for the `{user_name}` user name."
-        slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
-    else:
+    if result != cd.SUCCESS:
+        app_logger.error(lgm.error_creating_alias(user_data.user_name, user_data.id, alias_name))
         error_message = 'Could not create the alias, please contact with the app administrator'
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
+        return empty_response()
+
+    app_logger.info(lgm.alias_created(user_data.user_name, user_data.id, user_id, alias_name))
+    success_message = f"The `{alias_name}` alias has been registered successfully for the `{user_name}` user name."
+    slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
 
     return empty_response()
 
 
-@app.route(var.GET_ALIASES_REQUEST, methods=['POST'])
+@clockzy_service.route(var.GET_ALIASES_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @command_monitoring
@@ -486,7 +519,7 @@ def get_aliases(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.CHECK_USER_STATUS_REQUEST, methods=['POST'])
+@clockzy_service.route(var.CHECK_USER_STATUS_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -515,7 +548,7 @@ def get_user_status(slack_request_object, user_data):
     return empty_response()
 
 
-@app.route(var.ENABLE_INTRATIME_INTEGRATION_REQUEST, methods=['POST'])
+@clockzy_service.route(var.ENABLE_INTRATIME_INTEGRATION_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
 @validate_command_parameters
@@ -534,6 +567,7 @@ def enable_intratime_integration(slack_request_object, user_data):
     user_data.email = intratime_user
     user_data.password = crypt.encrypt(intratime_password)
     if user_data.update() != cd.SUCCESS:
+        app_logger.error(lgm.error_updating_user_credentials(user_data.user_name, user_data.id))
         command_error = 'Your intratime credentials could not be updated, please contact with the app administrator'
         slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
         return empty_response()
@@ -543,19 +577,22 @@ def enable_intratime_integration(slack_request_object, user_data):
     user_config.update()
 
     if not get_config_object(user_data.id).intratime_integration:
+        app_logger.error(lgm.error_updating_user_configuration(user_data.user_name, user_data.id))
         command_error = 'Your user configuration could not be updated, please contact with the app administrator'
         slack.post_ephemeral_response_message(msg.build_error_message(command_error), response_url)
         return empty_response()
 
+    app_logger.info(lgm.intratime_sync_enabled_successfully(user_data.user_name, user_data.id))
     success_message = 'The linking with the Intratime app has been successful!'
     slack.post_ephemeral_response_message(msg.build_success_message(success_message), response_url)
 
     return empty_response()
 
 
-@app.route(var.DISABLE_INTRATIME_INTEGRATION_REQUEST, methods=['POST'])
+@clockzy_service.route(var.DISABLE_INTRATIME_INTEGRATION_REQUEST, methods=['POST'])
 @validate_slack_request
 @validate_user
+@command_monitoring
 def disable_intratime_integration(slack_request_object, user_data):
     """Disable the intratime integration."""
     response_url = slack_request_object.response_url
@@ -569,7 +606,8 @@ def disable_intratime_integration(slack_request_object, user_data):
     # Disable the integration in the config data
     user_config = Config(user_data.id, False)
     if user_config.update() != cd.SUCCESS:
-        error_message = 'Could not disabled the intratime integration. Please contact with the app admistrator'
+        app_logger.error(lgm.error_disabling_intratime_sync(user_data.user_name, user_data.id))
+        error_message = 'Could not disable the intratime integration. Please contact with the app admistrator'
         slack.post_ephemeral_response_message(msg.build_error_message(error_message), response_url)
         return empty_response()
 
@@ -579,10 +617,12 @@ def disable_intratime_integration(slack_request_object, user_data):
     user_data.update()
 
     # Send the success message
+    app_logger.error(lgm.success_disabling_intratime_sync(user_data.user_name, user_data.id))
     slack.post_ephemeral_response_message(msg.build_success_message('Integration with intratime disabled successfully'),
                                           response_url)
     return empty_response()
 
 
 if __name__ == '__main__':
-    app.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=settings.DEBUG_MODE)
+    set_logging()
+    clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=False)
