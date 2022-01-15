@@ -53,7 +53,7 @@ class SlackRequest:
         self.user_id = user_id
         self.user_name = user_name
         self.command = command
-        self.command_parameters = [] if text == '' else text.split('+')
+        self.command_parameters = [] if text is None else ([] if text == '' else text.split('+'))
         self.api_app_id = api_app_id
         self.is_enterprise_install = is_enterprise_install
         self.response_url = response_url
