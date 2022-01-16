@@ -124,7 +124,9 @@ def set_logging():
 
     # Set app logs
     app_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+    formatter = logging.Formatter("%(asctime)s — %(levelname)s — %(message)s")
     app_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_app.log'))
+    app_file_handler.setFormatter(formatter)
     app_logger.addHandler(app_file_handler)
 
 
