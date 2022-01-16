@@ -38,17 +38,22 @@ ALLOWED_COMMANDS = {
         'num_parameters': 0,
     },
     var.SIGN_UP_REQUEST: {
-        'description': 'Sign up for this app.',
+        'description': 'Sign up for this app',
+        'allowed_parameters': [],
+        'num_parameters': 0,
+    },
+    var.UPDATE_USER_REQUEST: {
+        'description': 'Update the username with the slack profile info',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.DELETE_USER_REQUEST: {
-        'description': 'Delete your user from this app.',
+        'description': 'Delete your user from this app',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.CLOCK_REQUEST: {
-        'description': 'Register a clocking action.',
+        'description': 'Register a clocking action',
         'allowed_parameters': ['in', 'pause', 'return', 'out'],
         'free_parameters': False,
         'num_parameters': 1
@@ -77,14 +82,14 @@ ALLOWED_COMMANDS = {
         'num_parameters': 0
     },
     var.ADD_ALIAS_REQUEST: {
-        'description': 'Add an alias for a given user name.',
+        'description': 'Add an alias for a given user name',
         'allowed_parameters': [],
         'free_parameters': True,
         'num_parameters': 2,
         'parameters_description': '<user_name> <new_alias_name>'
     },
     var.GET_ALIASES_REQUEST: {
-        'description': 'Get all user aliases.',
+        'description': 'Get all user aliases',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
@@ -282,6 +287,31 @@ def sign_up(slack_request_object):
     else:
         app_logger.error(lgm.error_creating_user(user_data.user_name, user_data.id))
         send_slack_message('ADD_USER_ERROR', response_url)
+
+    return empty_response()
+
+
+@clockzy_service.route(var.UPDATE_USER_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@command_monitoring
+def update_user(slack_request_object, user_data):
+    """Endpoint to update the user data, using the slack profile info"""
+    response_url = slack_request_object.response_url
+
+    # Check if the user data is already updated
+    if user_data.user_name == slack_request_object.user_name:
+        send_slack_message('USER_INFO_ALREADY_UPDATED', response_url)
+    else:
+        user_data.user_name = slack_request_object.user_name
+
+        # Update the user info and communicate the result
+        if user_data.update() == cd.SUCCESS:
+            app_logger.error(lgm.success_updating_user(user_data.user_name, user_data.id))
+            send_slack_message('UPDATE_USER_SUCCESS', response_url)
+        else:
+            app_logger.error(lgm.error_updating_user(user_data.user_name, user_data.id))
+            send_slack_message('UPDATE_USER_ERROR', response_url)
 
     return empty_response()
 

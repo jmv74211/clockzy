@@ -3,6 +3,7 @@
 # API PATHS
 ECHO_REQUEST = '/echo'
 SIGN_UP_REQUEST = '/sign-up'
+UPDATE_USER_REQUEST = '/update-user'
 DELETE_USER_REQUEST = '/delete-user'
 CLOCK_REQUEST = '/clock'
 TIME_REQUEST = '/time'

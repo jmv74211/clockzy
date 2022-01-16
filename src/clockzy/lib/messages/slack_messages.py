@@ -316,6 +316,12 @@ def send_slack_message(message_id, response_url, extra_args=[]):
         message = ':mega: Your user is already registered! :mega:'
     elif message_id == 'ADD_USER_ERROR':
         message = build_error_message('Could not create the user. Please contact with the app administrator')
+    elif message_id == 'USER_INFO_ALREADY_UPDATED':
+        message = ':mega: Your user info is already updated!. No changes were made :mega:'
+    elif message_id == 'UPDATE_USER_ERROR':
+        message = build_error_message('Could not update your user data. Please contact with the app administrator')
+    elif message_id == 'UPDATE_USER_SUCCESS':
+        message = build_success_message('Your username data has been updated successfully!')
     elif message_id == 'DELETE_USER_SUCCESS':
         message = build_success_message('The user has been deleted successfully')
     elif message_id == 'DELETE_USER_ERROR':

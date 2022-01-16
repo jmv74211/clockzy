@@ -75,3 +75,11 @@ def error_disabling_intratime_sync(user, id):
 
 def success_disabling_intratime_sync(user, id):
     return f"The user {user}({id}) has disabled successfully the intratime integration"
+
+
+def error_updating_user(user, id):
+    return f"Error when updating the user data for the user {user}({id})"
+
+
+def success_updating_user(user, id):
+    return f"The user {user}({id}) has updated his user information successfully"
