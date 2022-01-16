@@ -185,6 +185,21 @@ def get_working_days(datetime_from, datetime_to, excluded=(6, 7)):
     return days
 
 
+def get_num_seconds_from_hh_mm_time(string_time):
+    """Get the num seconds from a string date in format [x]h [y]m.
+
+    Args:
+        string_time (str): Time in format 0h 0m
+
+    Returns:
+        int: Total of seconds
+    """
+    hours = int(string_time.split('h')[0])
+    minutes = int(string_time.split(' ')[1].split('m')[0])
+
+    return timedelta(hours=hours, minutes=minutes).total_seconds()
+
+
 def sum_hh_mm_time(time_1, time_2):
     """Sum two times in the following format: 0h 0m
 
@@ -195,14 +210,6 @@ def sum_hh_mm_time(time_1, time_2):
     Returns:
         str: Sum of the specified times in format 0h 0m
     """
-    t1_hour = int(time_1.split('h')[0])
-    t1_min = int(time_1.split(' ')[1].split('m')[0])
-    t2_hour = int(time_2.split('h')[0])
-    t2_min = int(time_2.split(' ')[1].split('m')[0])
-
-    time_1_object = timedelta(hours=t1_hour, minutes=t1_min)
-    time_2_object = timedelta(hours=t2_hour, minutes=t2_min)
-
-    result = (time_1_object + time_2_object).total_seconds()
+    result = get_num_seconds_from_hh_mm_time(time_1) + get_num_seconds_from_hh_mm_time(time_2)
 
     return get_time_hh_mm_from_seconds(int(result))

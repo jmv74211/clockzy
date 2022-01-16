@@ -11,6 +11,14 @@ from clockzy.lib.clocking import IN_ACTION, PAUSE_ACTION, RETURN_ACTION, OUT_ACT
 
 ERROR_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/x.png'
 WARNING_IMAGE = 'https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/warning.png'
+GREEN_CIRCLE = ':large_green_circle:'
+YELLOW_CIRCLE = ':large_yellow_circle:'
+RED_CIRCLE = ':red_circle:'
+HOURGLASS = ':hourglass_flowing_sand:'
+TIMER_CLOCK = ':timer_clock:'
+MEGA = ':mega:'
+FLAG = ':triangular_flag_on_post:'
+CALENDAR = ':calendar:'
 
 
 def build_success_message(message):
@@ -99,7 +107,13 @@ def build_worked_time_message(time_range, worked_time):
     """
     time_string = 'this week' if time_range == time.WEEK else ('this month' if time_range == time.MONTH else time_range)
 
-    return f":timer_clock: Your working time {time_string} is *{worked_time}* :timer_clock:"
+    if time_range == time.TODAY:
+        num_hours = int(worked_time.split('h')[0])
+        status_icon = GREEN_CIRCLE if num_hours >= 8 else \
+            (YELLOW_CIRCLE if num_hours < 8 and num_hours >= 7 else RED_CIRCLE)
+        return f"{HOURGLASS} Your working time {time_string} is *{worked_time}* {status_icon}"
+
+    return f"{HOURGLASS} Your working time {time_string} is *{worked_time}*"
 
 
 def build_time_history_message(user_id, time_range):
@@ -114,29 +128,47 @@ def build_time_history_message(user_id, time_range):
     """
     from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
                 (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
-    header = f"{'-'*27} *{time_range.upper()} HISTORY* {'-'*27}\n\n:calendar: From _*{from_time}*_ to " \
-             f"_*{time.get_current_date_time()}*_ :calendar:\n"
+    header = f"{time_range.upper()} HISTORY"
+    summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time()}*_\n"
 
     lower_datetime = time.get_lower_time_from_time_range(time_range)
     upper_datetime = time.get_current_date_time()
     working_days = time.get_working_days(lower_datetime, upper_datetime, excluded=())
     worked_time_output = ''
     total_worked_time = '0h 0m'
+    num_worked_days = 0
 
     # Calculate the time worked for each day of the selected range and add it to the output
     for worked_day in reversed(working_days):
         init_datetime = worked_day
         end_datetime = f"{worked_day.split(' ')[0]} 23:59:59"
         worked_time = calculate_worked_time(user_id, lower_limit=init_datetime, upper_limit=end_datetime)
+        if worked_time != '0h 0m':
+            num_worked_days += 1
         worked_time_output += f"*• {worked_day}*: {worked_time}\n"
         total_worked_time = time.sum_hh_mm_time(total_worked_time, worked_time)
-    # Add the total worked time to the header message
-    header += f":timer_clock: Total worked: *{total_worked_time}* :timer_clock:\n"
+
+    # Calculate the average time
+    average_seconds = int(time.get_num_seconds_from_hh_mm_time(total_worked_time) / num_worked_days)
+    average_time = time.get_time_hh_mm_from_seconds(average_seconds)
+    average_hours = int(average_time.split('h')[0])
+    average_icon = GREEN_CIRCLE if average_hours >= 8 else \
+        (YELLOW_CIRCLE if average_hours < 8 and average_hours >= 7 else RED_CIRCLE)
+
+    # Add extra info to the summary message
+    summary += f"{HOURGLASS} Total worked: *{total_worked_time}*"
+    if time_range == time.TODAY:
+        summary += f" {average_icon}\n"
+
+    if time_range != time.TODAY:
+        summary += f"\n{FLAG} Worked days: *{num_worked_days}*\n"
+        summary += f"{TIMER_CLOCK} Average time: *{average_time}* {average_icon}\n"
 
     # Build the block messages
     blocks = [
+        bb.write_slack_header(header),
         bb.write_slack_divider(),
-        bb.write_slack_markdown(header),
+        bb.write_slack_markdown(summary),
         bb.write_slack_divider(),
         bb.write_slack_markdown(worked_time_output)
     ]
@@ -156,14 +188,14 @@ def build_clock_history_message(user_id, time_range):
     """
     from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
                 (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
-    header = f"{'-'*27} *{time_range.upper()} HISTORY* {'-'*27}\n\n:calendar: From _*{from_time}*_ to " \
-             f"_*{time.get_current_date_time()}*_ :calendar:\n"
+    header = f"{time_range.upper()} HISTORY"
+    summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time()}*_\n"
 
     lower_datetime = time.get_lower_time_from_time_range(time_range)
     upper_datetime = time.get_current_date_time()
     worked_time = calculate_worked_time(user_id, lower_limit=lower_datetime, upper_limit=upper_datetime)
-    header += f":timer_clock: Total worked: *{worked_time}* :timer_clock:\n"
     working_days = time.get_working_days(lower_datetime, upper_datetime, excluded=())
+    num_worked_days = 0
     clock_history_output_list = []
     output_list_elements = 0
 
@@ -174,11 +206,12 @@ def build_clock_history_message(user_id, time_range):
         clocking_data = get_clock_data_in_time_range(user_id, init_datetime, end_datetime)
         clock_history_output = ''
         if len(clocking_data) > 0:
+            num_worked_days += 1
             clock_history_output += f"• *{worked_day.split(' ')[0]}*:\n"
             for clock_item in clocking_data:
                 clock_history_output += f"{' ' * 6}• `{clock_item.action.upper()}`: _{clock_item.date_time}_\n"
         else:
-            clock_history_output += f"• *{worked_day.split(' ')[0]}*: :mega: No clocking data for this day :mega:\n"
+            clock_history_output += f"• *{worked_day.split(' ')[0]}*: {MEGA} No clocking data for this day\n"
 
         # Add the message to the block item
         if len(clock_history_output_list) == 0:
@@ -189,10 +222,25 @@ def build_clock_history_message(user_id, time_range):
         else:
             clock_history_output_list[output_list_elements] += clock_history_output
 
+    # Calculate the average time
+    average_seconds = int(time.get_num_seconds_from_hh_mm_time(worked_time) / num_worked_days)
+    average_time = time.get_time_hh_mm_from_seconds(average_seconds)
+    average_hours = int(average_time.split('h')[0])
+    average_icon = GREEN_CIRCLE if average_hours >= 8 else \
+        (YELLOW_CIRCLE if average_hours < 8 and average_hours >= 7 else RED_CIRCLE)
+
+    # Add extra info to the summary message
+    summary += f"{HOURGLASS} Total worked: *{worked_time}* {average_icon}\n"
+
+    if time_range != time.TODAY:
+        summary += f"{FLAG} Worked days: *{num_worked_days}*\n"
+        summary += f"{TIMER_CLOCK} Average time: *{average_time}* {average_icon}\n"
+
     # Build the block messages
     blocks = [
+        bb.write_slack_header(header),
         bb.write_slack_divider(),
-        bb.write_slack_markdown(header),
+        bb.write_slack_markdown(summary),
         bb.write_slack_divider()
     ]
 
@@ -243,7 +291,7 @@ def build_get_aliases_message():
     ]
 
     if len(data_ids) == 0:
-        blocks.append(bb.write_slack_markdown(':mega: No registered aliases found :mega:'))
+        blocks.append(bb.write_slack_markdown(f"{MEGA} No registered aliases found"))
         return blocks
 
     # Iterate over all users in alias data
@@ -277,14 +325,14 @@ def build_user_status_message(user_id, user_name):
     last_clock = get_last_clock_from_user(user_id)
 
     if last_clock is None:
-        return f":mega: The user `{user_name}` does not have any clock data :mega:"
+        return f"{MEGA} The user `{user_name}` does not have any clock data"
 
     if last_clock.action.lower() == IN_ACTION or last_clock.action.lower() == RETURN_ACTION:
-        return f":large_green_circle: The user `{user_name}` is available :large_green_circle:"
+        return f"The user `{user_name}` is available {GREEN_CIRCLE}"
     elif last_clock.action.lower() == PAUSE_ACTION:
-        return f":large_yellow_circle: The user `{user_name}` is absent, but will return later :large_yellow_circle:"
+        return f" The user `{user_name}` is absent, but will return later {YELLOW_CIRCLE}"
     else:
-        return f":red_circle: The user `{user_name}` is not available :red_circle:"
+        return f"The user `{user_name}` is not available {RED_CIRCLE}"
 
 
 def send_slack_message(message_id, response_url, extra_args=[]):
@@ -313,11 +361,11 @@ def send_slack_message(message_id, response_url, extra_args=[]):
     elif message_id == 'ADD_USER_SUCCESS':
         message = build_success_message('Your account has been created successfully')
     elif message_id == 'USER_ALREADY_REGISTERED':
-        message = ':mega: Your user is already registered! :mega:'
+        message = f"{MEGA} Your user is already registered!"
     elif message_id == 'ADD_USER_ERROR':
         message = build_error_message('Could not create the user. Please contact with the app administrator')
     elif message_id == 'USER_INFO_ALREADY_UPDATED':
-        message = ':mega: Your user info is already updated!. No changes were made :mega:'
+        message = f"{MEGA} Your user info is already updated!. No changes were made"
     elif message_id == 'UPDATE_USER_ERROR':
         message = build_error_message('Could not update your user data. Please contact with the app administrator')
     elif message_id == 'UPDATE_USER_SUCCESS':
@@ -379,7 +427,7 @@ def send_slack_message(message_id, response_url, extra_args=[]):
     elif message_id == 'ENABLE_INTRATIME_SUCCESS':
         message = build_success_message('The linking with the Intratime app has been successful!')
     elif message_id == 'INTRATIME_ALREADY_DISABLED':
-        message = ':mega: You already have it disabled! :mega:'
+        message = f"{MEGA} You already have it disabled!"
     elif message_id == 'ERROR_DISABLING_INTRATIME':
         message = build_error_message('Could not disable the intratime integration. Please contact with the app '
                                       'admistrator')

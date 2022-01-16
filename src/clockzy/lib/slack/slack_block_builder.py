@@ -12,6 +12,21 @@ def write_slack_divider():
     }
 
 
+def write_slack_header(message):
+    """Write a slack header block.
+
+    Returns:
+        dict: Block message
+    """
+    return {
+        "type": "header",
+        "text": {
+            "type": "plain_text",
+            "text": message
+        }
+    }
+
+
 def write_slack_markdown(message, image_url=None, alt_text='generic'):
     """Write a slack markdown section.
 
