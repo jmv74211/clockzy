@@ -193,7 +193,7 @@ def get_config_object(user_id):
     if len(config_data) == 0:
         return None
 
-    config_object = Config(user_id, config_data[0][1])
+    config_object = Config(user_id, config_data[0][1], config_data[0][2])
 
     return config_object
 

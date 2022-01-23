@@ -12,7 +12,8 @@ no_intratime_user_parameters = {'id': 'test_user_2', 'user_name': 'test_user_2'}
 clock_parameters = {'user_id': intratime_user_parameters['id'], 'action': 'IN', 'date_time': get_current_date_time()}
 command_history_parameters = {'user_id': intratime_user_parameters['id'], 'command': '/time', 'parameters': 'today',
                               'date_time': get_current_date_time()}
-config_parameters = {'user_id': intratime_user_parameters['id'], 'intratime_integration': False}
+config_parameters = {'user_id': intratime_user_parameters['id'], 'intratime_integration': False,
+                     'time_zone': 'Europe/Madrid'}
 alias_parameters = {'user_id': intratime_user_parameters['id'], 'alias': 'test'}
 
 

@@ -349,7 +349,7 @@ def send_slack_message(message_id, response_url, extra_args=[]):
                       'GET_ALIASES', 'COMMAND_HELP', 'TIME_HISTORY', 'CLOCK_HISTORY', 'TODAY_INFO']
 
     message_type = 'blocks' if message_id in block_messages else 'text'
-    print(message_type)
+
     if message_id == 'USER_NOT_REGISTERED':
         message = build_error_message('Your user is not registered!. You can do it typing `/sign_up` command')
     elif message_id == 'NOT_ALLOWED_COMMAND':
@@ -433,6 +433,9 @@ def send_slack_message(message_id, response_url, extra_args=[]):
                                       'admistrator')
     elif message_id == 'DISABLE_INTRATIME_SUCCESS':
         message = build_success_message('Integration with intratime disabled successfully')
+    elif message_id == 'ERROR_GETTING_USER_PROFILE_INFO':
+        message = build_error_message('Could not get your profile info to set your time zone. Please contact with the '
+                                      'app admistrator')
     else:
         logging.getLogger('clockzy').error(f"Undefined {message_id} message ID")
         slack.post_ephemeral_response_message(build_error_message(f"Undefined {message_id} slack message ID. Please  "

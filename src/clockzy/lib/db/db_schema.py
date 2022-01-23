@@ -47,6 +47,7 @@ CONFIG_TABLE_SCHEMA = """ \
     CREATE TABLE IF NOT EXISTS config (
         user_id VARCHAR(50),
         intratime_integration BOOLEAN NOT NULL,
+        time_zone VARCHAR(50),
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
     )Engine=InnoDB;
 """

@@ -3,6 +3,7 @@ import requests
 from http import HTTPStatus
 
 from clockzy.lib.handlers import codes
+from clockzy.config import settings
 
 
 def decode_slack_args(data):
@@ -76,3 +77,26 @@ def post_ephemeral_response_message(message, response_url, message_type='text'):
         return codes.BAD_REQUEST_DATA
 
     return codes.SUCCESS
+
+
+def get_user_profile_data(user_id):
+    """Get the slack user profile data. Useful to get the time zone.
+
+    Args:
+        user_id (str): User id to get the data
+
+    Returns:
+        tuple(int, dict): Status code and user info.
+    """
+    headers = {'Authorization': f"Bearer {settings.SLACK_BOT_TOKEN}"}
+    user_info_url = 'https://slack.com/api/users.info'
+    request_data = f"{user_info_url}?user={user_id}"
+
+    user_profile_data_request = requests.get(request_data, headers=headers)
+
+    if user_profile_data_request.status_code != HTTPStatus.OK:
+        return codes.BAD_RESPONSE_STATUS_CODE, None
+    elif not user_profile_data_request.json()['ok']:
+        return codes.BAD_RESPONSE_DATA, None
+
+    return codes.SUCCESS, user_profile_data_request.json()['user']

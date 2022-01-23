@@ -43,7 +43,7 @@ ALLOWED_COMMANDS = {
         'num_parameters': 0,
     },
     var.UPDATE_USER_REQUEST: {
-        'description': 'Update the username with the slack profile info',
+        'description': 'Update the username and time zone with the slack profile info',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
@@ -271,16 +271,23 @@ def sign_up(slack_request_object):
     """Endpoint to register a new user"""
     # Save the user in the DB
     response_url = slack_request_object.response_url
-    user = User(slack_request_object.user_id, slack_request_object.user_name)
-    result = user.save()
+    user_data = User(slack_request_object.user_id, slack_request_object.user_name)
+    result = user_data.save()
+
+    # Get the user profile info (needed for getting the user time zone)
+    user_profile_data = slack.get_user_profile_data(user_data.id)
+    if user_profile_data[0] != cd.SUCCESS or 'tz' not in user_profile_data[1]:
+        app_logger.error(lgm.error_getting_user_profile_info(user_data.user_name, user_data.id))
+        send_slack_message('ERROR_GETTING_USER_PROFILE_INFO', response_url)
+        return empty_response()
 
     # Create the objects associated to the user
-    user_config = Config(user.id, False)
+    user_config = Config(user_data.id, False, user_profile_data[1]['tz'])
     user_config.save()
 
     # Communicate the result of the user creation operation
     if result == cd.SUCCESS:
-        app_logger(lgm.user_created(user_data.user_name, user_data.id))
+        app_logger.info(lgm.user_created(user_data.user_name, user_data.id))
         send_slack_message('ADD_USER_SUCCESS', response_url)
     elif result == cd.ITEM_ALREADY_EXISTS:
         send_slack_message('USER_ALREADY_REGISTERED', response_url)
@@ -299,18 +306,41 @@ def update_user(slack_request_object, user_data):
     """Endpoint to update the user data, using the slack profile info"""
     response_url = slack_request_object.response_url
 
+    # Get the user profile info (needed for getting the user time zone)
+    user_profile_data = slack.get_user_profile_data(user_data.id)
+    if user_profile_data[0] != cd.SUCCESS or 'tz' not in user_profile_data[1]:
+        app_logger.error(lgm.error_getting_user_profile_info(user_data.user_name, user_data.id))
+        send_slack_message('ERROR_GETTING_USER_PROFILE_INFO', response_url)
+        return empty_response()
+
+    # Get the user time zone from the database
+    user_config = get_config_object(user_data.id)
+
     # Check if the user data is already updated
-    if user_data.user_name == slack_request_object.user_name:
+    if user_data.user_name == slack_request_object.user_name and user_config.time_zone == user_profile_data[1]['tz']:
         send_slack_message('USER_INFO_ALREADY_UPDATED', response_url)
     else:
-        user_data.user_name = slack_request_object.user_name
+        update_ok = True
 
-        # Update the user info and communicate the result
-        if user_data.update() == cd.SUCCESS:
-            app_logger.error(lgm.success_updating_user(user_data.user_name, user_data.id))
+        # Update the user name if necessary
+        if user_data.user_name != slack_request_object.user_name:
+            user_data.user_name = slack_request_object.user_name
+            if user_data.update() != cd.SUCCESS:
+                app_logger.error(lgm.error_updating_user(user_data.user_name, user_data.id, 'user_name'))
+                update_ok = False
+
+        # Update the user time zone if necessary
+        if user_config.time_zone != user_profile_data[1]['tz']:
+            user_config.time_zone = user_profile_data[1]['tz']
+            if user_config.update() != cd.SUCCESS:
+                app_logger.error(lgm.error_updating_user(user_data.user_name, user_data.id, 'time_zone'))
+                update_ok = False
+
+        # Communicate the result
+        if update_ok:
+            app_logger.info(lgm.success_updating_user(user_data.user_name, user_data.id))
             send_slack_message('UPDATE_USER_SUCCESS', response_url)
         else:
-            app_logger.error(lgm.error_updating_user(user_data.user_name, user_data.id))
             send_slack_message('UPDATE_USER_ERROR', response_url)
 
     return empty_response()
@@ -326,10 +356,10 @@ def delete_user(slack_request_object, user_data):
     result = user_data.delete()
 
     if result == cd.SUCCESS:
-        app_logger(lgm.user_deleted(user_data.user_name, user_data.id))
+        app_logger.info(lgm.user_deleted(user_data.user_name, user_data.id))
         send_slack_message('DELETE_USER_SUCCESS', response_url)
     else:
-        app_logger(lgm.error_deleting_user(user_data.user_name, user_data.id))
+        app_logger.error(lgm.error_deleting_user(user_data.user_name, user_data.id))
         send_slack_message('DELETE_USER_ERROR', response_url)
 
     return empty_response()
@@ -580,7 +610,8 @@ def enable_intratime_integration(slack_request_object, user_data):
         return empty_response()
 
     # Update the user configuration and set the intratime integration to True
-    user_config = Config(user_data.id, True)
+    user_config = get_config_object(user_data.id)
+    user_config.intratime_integration = True
     user_config.update()
 
     if not get_config_object(user_data.id).intratime_integration:
@@ -608,7 +639,9 @@ def disable_intratime_integration(slack_request_object, user_data):
         return empty_response()
 
     # Disable the integration in the config data
-    user_config = Config(user_data.id, False)
+    user_config = get_config_object(user_data.id)
+    user_config.intratime_integration = False
+
     if user_config.update() != cd.SUCCESS:
         app_logger.error(lgm.error_disabling_intratime_sync(user_data.user_name, user_data.id))
         send_slack_message('ERROR_DISABLING_INTRATIME', response_url)
