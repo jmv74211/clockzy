@@ -1,5 +1,6 @@
 """Utils functions related with files"""
 import json
+import yaml
 
 
 def read_json(file_path):
@@ -14,3 +15,16 @@ def read_json(file_path):
         output = json.loads(f.read())
 
     return output
+
+
+def read_yaml(file_path):
+    """Get the data from a YAML file.
+
+    Args:
+        file_path (str): YAML file path.
+
+    Returns:
+       dict: Yaml data.
+    """
+    with open(file_path) as f:
+        return yaml.safe_load(f)

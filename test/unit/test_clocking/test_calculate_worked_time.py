@@ -1,23 +1,22 @@
 import pytest
 import freezegun
+import os
 
 from clockzy.lib.clocking import calculate_worked_time
 from clockzy.lib.test_framework.database import no_intratime_user_parameters
+from clockzy.lib.utils.file import read_yaml
 
 
-test_calculate_worked_time_parameters = [
-    (no_intratime_user_parameters['id'], 'today', '2021-11-20 19:20:00', '9h 15m'),
-    (no_intratime_user_parameters['id'], 'week', '2021-11-05 23:50:00', '30h 15m'),
-    (no_intratime_user_parameters['id'], 'month', '2021-11-20 19:20:00', '48h 45m'),
-    (no_intratime_user_parameters['id'], 'today', '2021-12-28 18:28:00', '9h 28m'),
-    (no_intratime_user_parameters['id'], 'today', '2021-12-28 23:50:00', '10h 0m'),
-    (no_intratime_user_parameters['id'], 'week', '2021-12-28 23:50:00', '19h 0m'),
-    (no_intratime_user_parameters['id'], 'month', '2021-12-28 23:50:00', '53h 30m')
-]
+test_data = read_yaml(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data',
+                                              'test_calculate_worked_time.yaml'))
+test_ids = [item['name'] for item in test_data]
+test_parameters = [(item['clocks'], item['time_range'], item['expected_worked_time'], item['fake_current_date'])
+                   for item in test_data]
 
 
-@pytest.mark.parametrize('user_id, time_range, freezed_time, expected_result', test_calculate_worked_time_parameters)
-def test_calculate_worked_time(add_clock_test_data, user_id, time_range, freezed_time, expected_result):
+@pytest.mark.parametrize('clocking_data, time_range, expected_worked_time, fake_current_date',
+                         test_parameters, ids=test_ids)
+def test_calculate_worked_time(clocking_data, time_range, expected_worked_time, fake_current_date, clock):
     """Test the calculate_worked_time function from the clocking module"""
-    with freezegun.freeze_time(freezed_time):
-        assert calculate_worked_time(user_id, time_range) == expected_result
+    with freezegun.freeze_time(fake_current_date):
+        assert calculate_worked_time(no_intratime_user_parameters['id'], time_range) == expected_worked_time

@@ -1,0 +1,245 @@
+
+- name: 'No clocks'
+  clocks: []
+  time_range: 'today'
+  expected_worked_time : '0h 0m'
+  fake_current_date: '2022-01-03 23:59:59'
+
+- name: 'IN-OUT'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-03 18:15:30'
+  time_range: 'today'
+  expected_worked_time : '10h 15m'
+  fake_current_date: '2022-01-03 23:59:59'
+
+- name: 'IN-PAUSE-RETURN-OUT'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'PAUSE'
+      date_time: '2022-01-03 14:30:00'
+
+    - user_id: 'test_user_2'
+      action: 'RETURN'
+      date_time: '2022-01-03 15:30:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-03 18:30:30'
+  time_range: 'today'
+  expected_worked_time : '9h 30m'
+  fake_current_date: '2022-01-03 23:59:59'
+
+- name: 'IN-PAUSE-RETURN-PAUSE-RETURN-OUT'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'PAUSE'
+      date_time: '2022-01-03 12:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'RETURN'
+      date_time: '2022-01-03 13:30:00'
+
+    - user_id: 'test_user_2'
+      action: 'PAUSE'
+      date_time: '2022-01-03 15:30:00'
+
+    - user_id: 'test_user_2'
+      action: 'RETURN'
+      date_time: '2022-01-03 16:30:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-03 19:30:00'
+  time_range: 'today'
+  expected_worked_time : '9h 0m'
+  fake_current_date: '2022-01-03 23:59:59'
+
+- name: 'Only IN without OUT'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 18:00:00'
+  time_range: 'today'
+  expected_worked_time : '5h 59m'
+  fake_current_date: '2022-01-03 23:59:59'
+
+- name: 'IN-PAUSE-RETURN without OUT'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'PAUSE'
+      date_time: '2022-01-03 15:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'RETURN'
+      date_time: '2022-01-03 20:00:00'
+  time_range: 'today'
+  expected_worked_time : '10h 59m'
+  fake_current_date: '2022-01-03 23:59:59'
+
+- name: 'IN without OUT - check next day'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-04 08:00:15'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 17:00:00'
+  time_range: 'today'
+  expected_worked_time : '16h 59m'
+  fake_current_date: '2022-01-04 23:59:59'
+
+- name: 'IN-OUT IN-OUT IN-OUT - WEEK'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-03 15:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-04 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 16:15:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-06 07:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-06 14:30:00'
+  time_range: 'week'
+  expected_worked_time : '22h 45m'
+  fake_current_date: '2022-01-07 23:59:59'
+
+- name: 'IN-without OUT + Next day clockings'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 20:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-04 08:00:15'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 17:00:00'
+  time_range: 'week'
+  expected_worked_time : '20h 59m'
+  fake_current_date: '2022-01-07 23:59:59'
+
+- name: 'RETURN without OUT + next day clockings'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'PAUSE'
+      date_time: '2022-01-03 15:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'RETURN'
+      date_time: '2022-01-03 16:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 08:00:00'
+  time_range: 'week'
+  expected_worked_time : '23h 0m'
+  fake_current_date: '2022-01-07 23:59:59'
+
+- name: 'IN-OUT in different weeks'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-03 15:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-12 09:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-12 18:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-13 09:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-13 18:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-25 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-25 14:30:00'
+  time_range: 'month'
+  expected_worked_time : '31h 30m'
+  fake_current_date: '2022-01-31 23:59:59'
+
+- name: 'IN-OUT in different weeks + next day clockings'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 08:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-12 08:59:00'
+
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-12 09:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-12 19:00:00'
+  time_range: 'month'
+  expected_worked_time : '226h 59m'
+  fake_current_date: '2022-01-31 23:59:59'

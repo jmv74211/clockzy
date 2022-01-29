@@ -111,3 +111,20 @@ def add_clock_test_data():
 
     # Delete the test user and all its data
     clock_user.delete()
+
+
+@pytest.fixture(scope="function")
+def clock(clocking_data):
+    # Add the test user
+    clock_user = User(**no_intratime_user_parameters)
+    clock_user.save()
+
+    # Add the clocking data
+    for item in clocking_data:
+        clock = Clock(item['user_id'], item['action'], item['date_time'])
+        clock.save()
+
+    yield
+
+    # Delete the test user and all its data
+    clock_user.delete()
