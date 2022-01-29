@@ -1,19 +1,40 @@
+import os
 import pytest
 
 from clockzy.lib.db.database_interface import get_clock_data_in_time_range
 from clockzy.lib.test_framework.database import no_intratime_user_parameters
+from clockzy.lib.models.user import User
+from clockzy.lib.models.clock import Clock
+from clockzy.lib.utils.file import read_yaml
 
-test_get_clock_data_in_time_range_parameters = [
-    (no_intratime_user_parameters['id'], '2021-11-01 00:00:00', '2021-12-29 00:00:00', 40),
-    (no_intratime_user_parameters['id'], '2021-11-01 00:00:00', '2021-11-30 23:59:59', 18),
-    (no_intratime_user_parameters['id'], '2021-12-01 00:00:00', '2021-12-29 23:59:59', 22),
-    (no_intratime_user_parameters['id'], '2021-12-27 00:00:00', '2021-12-30 23:59:59', 8),
-    (no_intratime_user_parameters['id'], '2021-12-20 00:00:00', '2021-12-24 23:59:59', 0),
-    (no_intratime_user_parameters['id'], '2021-12-27 00:00:00', '2021-12-27 23:59:59', 4),
-]
 
-@pytest.mark.parametrize('user_id, datetime_from, datetime_to, expected_result',
-                         test_get_clock_data_in_time_range_parameters)
-def test_get_clock_data_in_time_range(add_clock_test_data, user_id, datetime_from, datetime_to, expected_result):
+test_data = read_yaml(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data',
+                                   'test_get_clock_data_in_time_range.yaml'))
+test_ids = [item['name'] for item in test_data['test_cases']]
+
+test_parameters = [(item['datetime_from'], item['datetime_to'], item['expected_result']) for item in
+                   test_data['test_cases']]
+
+
+@pytest.fixture(scope="module")
+def clock():
+    # Add the test user
+    clock_user = User(**no_intratime_user_parameters)
+    clock_user.save()
+
+    # Add the clocking data
+    for item in test_data['clocks']:
+        clock = Clock(item['user_id'], item['action'], item['date_time'])
+        clock.save()
+
+    yield
+
+    # Delete the test user and all its data
+    clock_user.delete()
+
+
+@pytest.mark.parametrize('datetime_from, datetime_to, expected_result', test_parameters, ids=test_ids)
+def test_get_clock_data_in_time_range(datetime_from, datetime_to, expected_result, clock):
     """Test the get_clock_data_in_time_range function from clockzy module"""
+    user_id = no_intratime_user_parameters['id']
     assert len(get_clock_data_in_time_range(user_id, datetime_from, datetime_to)) == expected_result

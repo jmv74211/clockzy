@@ -8,7 +8,7 @@ from clockzy.lib.utils.file import read_yaml
 
 
 test_data = read_yaml(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data',
-                                              'test_calculate_worked_time.yaml'))
+                                   'test_calculate_worked_time.yaml'))
 test_ids = [item['name'] for item in test_data]
 test_parameters = [(item['clocks'], item['time_range'], item['expected_worked_time'], item['fake_current_date'])
                    for item in test_data]

@@ -1,0 +1,117 @@
+clocks:
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-03 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'PAUSE'
+    date_time: '2022-01-03 09:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'RETURN'
+    date_time: '2022-01-03 12:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-03 19:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-04 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-04 16:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-05 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-05 18:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-11 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-11 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-12 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-12 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-13 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-13 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-14 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-14 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-19 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-19 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-24 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-24 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-25 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-26 14:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'IN'
+    date_time: '2022-01-27 08:00:00'
+
+  - user_id: 'test_user_2'
+    action: 'OUT'
+    date_time: '2022-01-27 14:00:00'
+
+test_cases:
+  - name: '1 day'
+    datetime_from: '2022-01-03 00:00:00'
+    datetime_to: '2022-01-04 00:00:00'
+    expected_result: 4
+
+  - name: '1 week'
+    datetime_from: 2022-01-03 00:00:00
+    datetime_to: 2022-01-07 23:59:59
+    expected_result: 8
+
+  - name: '15 days'
+    datetime_from: 2022-01-03 00:00:00
+    datetime_to: 2022-01-17 00:00:00
+    expected_result: 16
+
+  - name: '1 month'
+    datetime_from: 2022-01-01 00:00:00
+    datetime_to: 2022-01-31 23:59:59
+    expected_result: 24
