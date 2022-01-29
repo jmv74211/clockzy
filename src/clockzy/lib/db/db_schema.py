@@ -26,6 +26,7 @@ CLOCK_TABLE_SCHEMA = """ \
         user_id VARCHAR(50),
         action VARCHAR(20) NOT NULL,
         date_time DATETIME NOT NULL,
+        local_date_time DATETIME NOT NULL,
         PRIMARY KEY (id),
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
     )Engine=InnoDB;
