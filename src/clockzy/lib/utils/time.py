@@ -1,3 +1,4 @@
+import pytz
 from datetime import datetime, timedelta
 
 
@@ -10,15 +11,16 @@ WEEK = 'week'
 MONTH = 'month'
 
 
-def get_current_date_time():
+def get_current_date_time(timezone='Europe/Berlin'):
     """Get the current date time.
+
+    Args:
+        timezone (str): Timezone.
 
     Returns:
         str: Datetime in format %Y-%m-%d %H:%M:%S
     """
-
-    now = datetime.now()
-    date_time = f"{now.strftime('%Y-%m-%d')} {now.strftime('%H:%M:%S')}"
+    date_time = datetime.now(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M:%S")
 
     return date_time
 
@@ -43,7 +45,6 @@ def subtract_days_to_datetime(date_time, days):
     Returns:
         str: Datetime in format %Y-%m-%d %H:%M:%S
     """
-
     date_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
     return datetime.strftime(date_object - timedelta(days=days), '%Y-%m-%d %H:%M:%S')
 
@@ -57,7 +58,6 @@ def get_week_day(date_time):
     Returns:
         int: [0-6] where Monday is 0 and Sunday is 6
     """
-
     date_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
     return date_object.weekday()
 
@@ -68,7 +68,6 @@ def get_first_week_day():
     Returns
         str: First day of week in %Y-%m-%d %H:%M:%S format. e.g 2020-11-02 00:00:00
     """
-
     date_time = f"{get_current_date()} 00:00:00"
     week_init_date = datetime.strptime(subtract_days_to_datetime(date_time, get_week_day(date_time)),
                                        '%Y-%m-%d %H:%M:%S').date()
@@ -83,7 +82,6 @@ def get_first_month_day():
     Returns:
         str: %Y-%m-%d %H:%M:%S: First day of month e.g 2020-11-01 00:00:00
     """
-
     date_time = f"{get_current_date()} 00:00:00"
     date_time_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S').replace(day=1, hour=0, minute=0, second=0)
     month_init_datetime = datetime.strftime(date_time_object, '%Y-%m-%d %H:%M:%S')
@@ -102,7 +100,6 @@ def get_time_difference(datetime_from, datetime_to, unit=SECONDS):
     Returns:
         int: Time elapsed between the two datetimes.
     """
-
     datetime_from_object = datetime.strptime(datetime_from, '%Y-%m-%d %H:%M:%S')
     datetime_to_object = datetime.strptime(datetime_to, '%Y-%m-%d %H:%M:%S')
 

@@ -407,7 +407,8 @@ def clock(slack_request_object, user_data):
             return empty_response()
 
     # Save the clock in the DB
-    clock = Clock(user_data.id, action, get_current_date_time())
+    user_timezone = get_config_object(user_data.id).time_zone
+    clock = Clock(user_data.id, action, get_current_date_time(user_timezone))
     result = clock.save()
 
     # Communicate the result of the clocking operation
@@ -442,9 +443,10 @@ def time(slack_request_object, user_data):
     """Endpoint to get the worked time for the specified time range"""
     time_range = slack_request_object.command_parameters[0]
     response_url = slack_request_object.response_url
+    user_timezone = get_config_object(user_data.id).time_zone
 
     # Calculate the worked time
-    worked_time = calculate_worked_time(user_data.id, time_range=time_range)
+    worked_time = calculate_worked_time(user_data.id, time_range=time_range, timezone=timezone)
 
     # Communicate the result
     send_slack_message('WORKED_TIME', response_url, [time_range, worked_time])
@@ -461,9 +463,10 @@ def time_history(slack_request_object, user_data):
     """Endpoint to get the worked time history for the specified time range"""
     time_range = slack_request_object.command_parameters[0]
     response_url = slack_request_object.response_url
+    user_timezone = get_config_object(user_data.id).time_zone
 
     # Calculate and send the report
-    send_slack_message('TIME_HISTORY', response_url, [user_data.id, time_range])
+    send_slack_message('TIME_HISTORY', response_url, [user_data.id, time_range, user_timezone])
 
     return empty_response()
 
@@ -477,9 +480,10 @@ def clock_history(slack_request_object, user_data):
     """Endpoint to get the clock history for the specified time range"""
     time_range = slack_request_object.command_parameters[0]
     response_url = slack_request_object.response_url
+    user_timezone = get_config_object(user_data.id).time_zone
 
     # Calculate and send the report
-    send_slack_message('CLOCK_HISTORY', response_url, [user_data.id, time_range])
+    send_slack_message('CLOCK_HISTORY', response_url, [user_data.id, time_range, user_timezone])
 
     return empty_response()
 
@@ -491,9 +495,10 @@ def clock_history(slack_request_object, user_data):
 def today_info(slack_request_object, user_data):
     """Endpoint to show the clock history and worked time for today"""
     response_url = slack_request_object.response_url
+    user_timezone = get_config_object(user_data.id).time_zone
 
     # Calculate and send the report
-    send_slack_message('TODAY_INFO', response_url, [user_data.id, 'today'])
+    send_slack_message('TODAY_INFO', response_url, [user_data.id, 'today', user_timezone])
 
     return empty_response()
 

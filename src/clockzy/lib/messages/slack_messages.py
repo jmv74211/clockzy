@@ -116,12 +116,13 @@ def build_worked_time_message(time_range, worked_time):
     return f"{HOURGLASS} Your working time {time_string} is *{worked_time}*"
 
 
-def build_time_history_message(user_id, time_range):
+def build_time_history_message(user_id, time_range, timezone):
     """Build the slack message when a user request to know the worked time history.
 
     Args:
         user_id (str): User identifier to calculate the worked time.
         time_range (str): Enum [today, week, month]
+        timezone (str): Timezone.
 
     Returns:
         str: Slack message.
@@ -129,10 +130,10 @@ def build_time_history_message(user_id, time_range):
     from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
                 (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
     header = f"{time_range.upper()} HISTORY"
-    summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time()}*_\n"
+    summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time(timezone)}*_\n"
 
     lower_datetime = time.get_lower_time_from_time_range(time_range)
-    upper_datetime = time.get_current_date_time()
+    upper_datetime = time.get_current_date_time(timezone)
     working_days = time.get_working_days(lower_datetime, upper_datetime, excluded=())
     worked_time_output = ''
     total_worked_time = '0h 0m'
@@ -142,27 +143,29 @@ def build_time_history_message(user_id, time_range):
     for worked_day in reversed(working_days):
         init_datetime = worked_day
         end_datetime = f"{worked_day.split(' ')[0]} 23:59:59"
-        worked_time = calculate_worked_time(user_id, lower_limit=init_datetime, upper_limit=end_datetime)
+        worked_time = calculate_worked_time(user_id, lower_limit=init_datetime, upper_limit=end_datetime,
+                                            timezone=timezone)
         if worked_time != '0h 0m':
             num_worked_days += 1
         worked_time_output += f"*• {worked_day}*: {worked_time}\n"
         total_worked_time = time.sum_hh_mm_time(total_worked_time, worked_time)
 
     # Calculate the average time
-    average_seconds = int(time.get_num_seconds_from_hh_mm_time(total_worked_time) / num_worked_days)
-    average_time = time.get_time_hh_mm_from_seconds(average_seconds)
-    average_hours = int(average_time.split('h')[0])
-    average_icon = GREEN_CIRCLE if average_hours >= 8 else \
-        (YELLOW_CIRCLE if average_hours < 8 and average_hours >= 7 else RED_CIRCLE)
+    if num_worked_days > 0:
+        average_seconds = int(time.get_num_seconds_from_hh_mm_time(total_worked_time) / num_worked_days)
+        average_time = time.get_time_hh_mm_from_seconds(average_seconds)
+        average_hours = int(average_time.split('h')[0])
+        average_icon = GREEN_CIRCLE if average_hours >= 8 else \
+            (YELLOW_CIRCLE if average_hours < 8 and average_hours >= 7 else RED_CIRCLE)
 
-    # Add extra info to the summary message
-    summary += f"{HOURGLASS} Total worked: *{total_worked_time}*"
-    if time_range == time.TODAY:
-        summary += f" {average_icon}\n"
+        # Add extra info to the summary message
+        summary += f"{HOURGLASS} Total worked: *{total_worked_time}*"
+        if time_range == time.TODAY:
+            summary += f" {average_icon}\n"
 
-    if time_range != time.TODAY:
-        summary += f"\n{FLAG} Worked days: *{num_worked_days}*\n"
-        summary += f"{TIMER_CLOCK} Average time: *{average_time}* {average_icon}\n"
+        if time_range != time.TODAY:
+            summary += f"\n{FLAG} Worked days: *{num_worked_days}*\n"
+            summary += f"{TIMER_CLOCK} Average time: *{average_time}* {average_icon}\n"
 
     # Build the block messages
     blocks = [
@@ -176,12 +179,13 @@ def build_time_history_message(user_id, time_range):
     return blocks
 
 
-def build_clock_history_message(user_id, time_range):
+def build_clock_history_message(user_id, time_range, timezone):
     """Build the slack message when a user request to know its clock history.
 
     Args:
         user_id (str): User identifier to calculate the worked time.
         time_range (str): Enum [today, week, month]
+        timezone (str): Timezone.
 
     Returns:
         str: Slack message.
@@ -189,11 +193,12 @@ def build_clock_history_message(user_id, time_range):
     from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
                 (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
     header = f"{time_range.upper()} HISTORY"
-    summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time()}*_\n"
+    summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time(timezone)}*_\n"
 
     lower_datetime = time.get_lower_time_from_time_range(time_range)
-    upper_datetime = time.get_current_date_time()
-    worked_time = calculate_worked_time(user_id, lower_limit=lower_datetime, upper_limit=upper_datetime)
+    upper_datetime = time.get_current_date_time(timezone)
+    worked_time = calculate_worked_time(user_id, lower_limit=lower_datetime, upper_limit=upper_datetime,
+                                        timezone=timezone)
     working_days = time.get_working_days(lower_datetime, upper_datetime, excluded=())
     num_worked_days = 0
     clock_history_output_list = []
@@ -223,18 +228,19 @@ def build_clock_history_message(user_id, time_range):
             clock_history_output_list[output_list_elements] += clock_history_output
 
     # Calculate the average time
-    average_seconds = int(time.get_num_seconds_from_hh_mm_time(worked_time) / num_worked_days)
-    average_time = time.get_time_hh_mm_from_seconds(average_seconds)
-    average_hours = int(average_time.split('h')[0])
-    average_icon = GREEN_CIRCLE if average_hours >= 8 else \
-        (YELLOW_CIRCLE if average_hours < 8 and average_hours >= 7 else RED_CIRCLE)
+    if num_worked_days > 0:
+        average_seconds = int(time.get_num_seconds_from_hh_mm_time(worked_time) / num_worked_days)
+        average_time = time.get_time_hh_mm_from_seconds(average_seconds)
+        average_hours = int(average_time.split('h')[0])
+        average_icon = GREEN_CIRCLE if average_hours >= 8 else \
+            (YELLOW_CIRCLE if average_hours < 8 and average_hours >= 7 else RED_CIRCLE)
 
-    # Add extra info to the summary message
-    summary += f"{HOURGLASS} Total worked: *{worked_time}* {average_icon}\n"
+        # Add extra info to the summary message
+        summary += f"{HOURGLASS} Total worked: *{worked_time}* {average_icon}\n"
 
-    if time_range != time.TODAY:
-        summary += f"{FLAG} Worked days: *{num_worked_days}*\n"
-        summary += f"{TIMER_CLOCK} Average time: *{average_time}* {average_icon}\n"
+        if time_range != time.TODAY:
+            summary += f"{FLAG} Worked days: *{num_worked_days}*\n"
+            summary += f"{TIMER_CLOCK} Average time: *{average_time}* {average_icon}\n"
 
     # Build the block messages
     blocks = [
@@ -394,11 +400,11 @@ def send_slack_message(message_id, response_url, extra_args=[]):
     elif message_id == 'WORKED_TIME':
         message = build_worked_time_message(extra_args[0], extra_args[1])
     elif message_id == 'TIME_HISTORY':
-        message = build_time_history_message(extra_args[0], extra_args[1])
+        message = build_time_history_message(extra_args[0], extra_args[1], extra_args[2])
     elif message_id == 'CLOCK_HISTORY':
-        message = build_clock_history_message(extra_args[0], extra_args[1])
+        message = build_clock_history_message(extra_args[0], extra_args[1], extra_args[2])
     elif message_id == 'TODAY_INFO':
-        message = build_clock_history_message(extra_args[0], extra_args[1])
+        message = build_clock_history_message(extra_args[0], extra_args[1], extra_args[2])
     elif message_id == 'COMMAND_HELP':
         message = build_command_help_message()
     elif message_id == 'UNDEFINED_USERNAME':

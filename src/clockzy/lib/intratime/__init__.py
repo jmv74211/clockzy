@@ -81,13 +81,14 @@ def check_user_credentials(email, password):
     return token != codes.INTRATIME_CONNECTION_ERROR and token != codes.INTRATIME_AUTH_ERROR
 
 
-def clocking(action, email, password):
+def clocking(action, email, password, timezone):
     """Register an action in the Intratime API.
 
     Args:
         action (str): Action enum: ['in', 'out', 'pause', 'return'].
         email (str): User intratime email.
         password (str): User intratime password.
+        timezone (str): User timezone.
 
     Returns:
         int: codes.SUCCESS if clocking has been successful.
@@ -95,7 +96,7 @@ def clocking(action, email, password):
              codes.INTRATIME_CONNECTION_ERROR if there is a Intratime API connection error.
              codes.INTRATIME_CLOCKING_ERROR if intratime API response is not valid.
     """
-    date_time = get_current_date_time()
+    date_time = get_current_date_time(timezone)
     api_action = get_action_id(action.lower())
     token = get_auth_token(email, password)
 
