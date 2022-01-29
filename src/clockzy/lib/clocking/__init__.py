@@ -74,7 +74,13 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
     before_action = ''
     before_action_datetime = ''
 
-    for clock_item in clock_data:
+    for index, clock_item in enumerate(clock_data):
+        # Add worked time if worked in the early morning hours
+        if index == 0 and clock_item.action.lower() == OUT_ACTION:
+            morning_time = f"{time.datetime_to_str(clock_item.date_time).split(' ')[0]} 00:00:00"
+            worked_seconds += time.get_time_difference(morning_time, time.datetime_to_str(clock_item.date_time))
+
+        # Add clocking time
         if (clock_item.action.lower() == PAUSE_ACTION and before_action == IN_ACTION) or \
            (clock_item.action.lower() == OUT_ACTION and before_action == IN_ACTION) or \
            (clock_item.action.lower() == OUT_ACTION and before_action == RETURN_ACTION) or \
@@ -84,12 +90,13 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
         before_action = clock_item.action.lower()
         before_action_datetime = time.datetime_to_str(clock_item.date_time)
 
-    # Add the time remaining until now before pausing or exiting (time worked but not clocked)
     last_clocked_action = clock_data[-1].action.lower()
     last_clocked_datetime = time.datetime_to_str(clock_data[-1].date_time)
 
+    # Add the time remaining until now before pausing or exiting (time worked but not clocked)
     if last_clocked_action != OUT_ACTION and last_clocked_action != PAUSE_ACTION:
-        last_non_clocked_time = time.get_time_difference(last_clocked_datetime, time.get_current_date_time())
+        last_clocked_datetime_end = f"{last_clocked_datetime.split(' ')[0]} 23:59:59"
+        last_non_clocked_time = time.get_time_difference(last_clocked_datetime, last_clocked_datetime_end)
         worked_seconds += last_non_clocked_time
 
     return time.get_time_hh_mm_from_seconds(worked_seconds)
