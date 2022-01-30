@@ -68,7 +68,7 @@ class Clock:
             int: Operation status code..
         """
         update_clock_query = f"UPDATE {CLOCK_TABLE} SET id='{self.id}', user_id='{self.user_id}', " \
-                             f"action='{self.action}', date_time='{self.date_time}, " \
+                             f"action='{self.action}', date_time='{self.date_time}', " \
                              f"local_date_time='{self.local_date_time}' WHERE id='{self.id}'"
 
         if not item_exists({'id': self.id}, CLOCK_TABLE):

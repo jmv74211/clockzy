@@ -77,7 +77,7 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
 
     for index, clock_item in enumerate(clock_data):
         # Add worked time if worked in the early morning hours
-        if index == 0 and clock_item.action.lower() == OUT_ACTION:
+        if index == 0 and (clock_item.action.lower() == OUT_ACTION or clock_item.action.lower() == PAUSE_ACTION):
             morning_time = f"{time.datetime_to_str(clock_item.date_time).split(' ')[0]} 00:00:00"
             worked_seconds += time.get_time_difference(morning_time, time.datetime_to_str(clock_item.date_time))
 

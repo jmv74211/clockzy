@@ -446,7 +446,7 @@ def time(slack_request_object, user_data):
     user_timezone = get_config_object(user_data.id).time_zone
 
     # Calculate the worked time
-    worked_time = calculate_worked_time(user_data.id, time_range=time_range, timezone=timezone)
+    worked_time = calculate_worked_time(user_data.id, time_range=time_range, timezone=user_timezone)
 
     # Communicate the result
     send_slack_message('WORKED_TIME', response_url, [time_range, worked_time])

@@ -115,6 +115,27 @@
   expected_worked_time : '16h 59m'
   fake_current_date: '2022-01-04 23:59:59'
 
+- name: 'IN before day + PAUSE'
+  clocks:
+    - user_id: 'test_user_2'
+      action: 'IN'
+      date_time: '2022-01-03 22:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'PAUSE'
+      date_time: '2022-01-04 02:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'RETURN'
+      date_time: '2022-01-04 03:00:00'
+
+    - user_id: 'test_user_2'
+      action: 'OUT'
+      date_time: '2022-01-04 08:00:00'
+  time_range: 'today'
+  expected_worked_time : '7h 0m'
+  fake_current_date: '2022-01-04 23:59:59'
+
 - name: 'IN-OUT IN-OUT IN-OUT - WEEK'
   clocks:
     - user_id: 'test_user_2'
