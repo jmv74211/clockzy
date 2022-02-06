@@ -122,7 +122,7 @@ def build_time_history_message(user_id, time_range, timezone):
     Args:
         user_id (str): User identifier to calculate the worked time.
         time_range (str): Enum [today, week, month]
-        timezone (str): Timezone.
+        timezone (str): User timezone.
 
     Returns:
         str: Slack message.
@@ -136,7 +136,6 @@ def build_time_history_message(user_id, time_range, timezone):
     upper_datetime = time.get_current_date_time(timezone)
     working_days = time.get_working_days(lower_datetime, upper_datetime, excluded=())
     worked_time_output = ''
-    total_worked_time = '0h 0m'
     num_worked_days = 0
 
     # Calculate the time worked for each day of the selected range and add it to the output
@@ -148,10 +147,11 @@ def build_time_history_message(user_id, time_range, timezone):
         if worked_time != '0h 0m':
             num_worked_days += 1
         worked_time_output += f"*• {worked_day}*: {worked_time}\n"
-        total_worked_time = time.sum_hh_mm_time(total_worked_time, worked_time)
 
     # Calculate the average time
     if num_worked_days > 0:
+        total_worked_time = calculate_worked_time(user_id, lower_limit=lower_datetime, upper_limit=upper_datetime,
+                                                  timezone=timezone)
         average_seconds = int(time.get_num_seconds_from_hh_mm_time(total_worked_time) / num_worked_days)
         average_time = time.get_time_hh_mm_from_seconds(average_seconds)
         average_hours = int(average_time.split('h')[0])
@@ -214,7 +214,8 @@ def build_clock_history_message(user_id, time_range, timezone):
             num_worked_days += 1
             clock_history_output += f"• *{worked_day.split(' ')[0]}*:\n"
             for clock_item in clocking_data:
-                clock_history_output += f"{' ' * 6}• `{clock_item.action.upper()}`: _{clock_item.date_time}_\n"
+                clock_time = clock_item.date_time.strftime('%H:%M:%S')
+                clock_history_output += f"{' ' * 6}• `{clock_item.action.upper()}`: _{clock_time}_\n"
         else:
             clock_history_output += f"• *{worked_day.split(' ')[0]}*: {MEGA} No clocking data for this day\n"
 
@@ -285,14 +286,13 @@ def build_get_aliases_message():
     Returns:
         str: Slack message.
     """
-    header = f"{'-'*27} *ALIASES* {'-'*27}\n\n"
+    header = 'ALIASES'
     query_ids = f"SELECT DISTINCT user_id FROM {ALIAS_TABLE}"
     data_ids = run_query(query_ids)
     message = ''
 
     blocks = [
-        bb.write_slack_divider(),
-        bb.write_slack_markdown(header),
+        bb.write_slack_header(header),
         bb.write_slack_divider()
     ]
 
@@ -303,15 +303,15 @@ def build_get_aliases_message():
     # Iterate over all users in alias data
     for user_id in data_ids:
         user_name = run_query(f"SELECT user_name FROM {USER_TABLE} WHERE id='{user_id[0]}'")[0][0]
-        message += f"• *{user_name}*: [ "
+        message += f"• *{user_name}*: "
         aliases = run_query(f"SELECT alias FROM {ALIAS_TABLE} WHERE user_id='{user_id[0]}'")
         # Get all aliases from that user
         for alias in aliases:
-            message += f"_{ alias[0]}_, "
+            message += f"`{ alias[0]}`, "
 
         # Remove ', ' from the end
         message = message[:-2]
-        message += ' ]\n'
+        message += '\n'
 
     blocks.append(bb.write_slack_markdown(message))
 
