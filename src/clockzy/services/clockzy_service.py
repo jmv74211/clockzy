@@ -259,7 +259,6 @@ def command_monitoring(func):
 
 
 @clockzy_service.route(var.ECHO_REQUEST, methods=['POST'])
-@validate_slack_request
 def echo():
     """Endpoint to check the current server status"""
     return empty_response()
@@ -379,6 +378,7 @@ def clock(slack_request_object, user_data):
     """
     action = slack_request_object.command_parameters[0]
     response_url = slack_request_object.response_url
+    user_timezone = get_config_object(user_data.id).time_zone
 
     # Check if the user can clock that action (it makes sense)
     clock_check = user_can_clock_this_action(user_data.id, action)
@@ -393,7 +393,7 @@ def clock(slack_request_object, user_data):
     if intratime_enabled:
         user_email = user_data.email
         user_password = crypt.decrypt(user_data.password)
-        clocking_status = intratime.clocking(action, user_email, user_password)
+        clocking_status = intratime.clocking(action, user_email, user_password, user_timezone)
 
         # If the intratime clocking has failed, then display an error message and exit so as not to clock it in clockzy.
         if clocking_status != cd.SUCCESS:
@@ -407,7 +407,6 @@ def clock(slack_request_object, user_data):
             return empty_response()
 
     # Save the clock in the DB
-    user_timezone = get_config_object(user_data.id).time_zone
     clock = Clock(user_data.id, action, get_current_date_time(user_timezone))
     result = clock.save()
 
@@ -605,6 +604,7 @@ def enable_intratime_integration(slack_request_object, user_data):
     # Validate the entered intratime credentials
     if not intratime.check_user_credentials(intratime_user, intratime_password):
         send_slack_message('BAD_INTRATIME_CREDENTIALS', response_url)
+        return empty_response()
 
     # Add the intratime credentials to the user data in the DB
     user_data.email = intratime_user
