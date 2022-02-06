@@ -39,8 +39,9 @@ def user_can_clock_this_action(user_id, action):
 
     # If previous records but the action is wrong
     if action not in white_list[last_clocked_action]:
-        return (False, f"Your last clock action was `{last_clocked_action.upper()}`, so you can not `{action.upper()}`"
-                       ' clock action')
+        available_actions = [f"`{action.upper()}`" for action in white_list[last_clocked_action]]
+        return (False, f"Your last clock action was `{last_clocked_action.upper()}`, so you can not `{action.upper()}` "
+                       f"clock action.\n*Available actions*: {', '.join(available_actions)}")
 
     return (True, None)
 
@@ -67,8 +68,23 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
     # Get the clocking objects
     clock_data = get_clock_data_in_time_range(user_id, lower_limit, upper_limit)
 
+    # If there is no data in the specified range
     if len(clock_data) == 0:
-        return time.get_time_hh_mm_from_seconds(0)
+        previous_month_datetime = time.subtract_days_to_datetime(lower_limit, 31)
+        # Get the clockings data between the lower datetime and one month back from that date
+        before_clockings = get_clock_data_in_time_range(user_id, previous_month_datetime, lower_limit)
+        # If the user has not made any clock registration yet (in one month)
+        if len(before_clockings) == 0:
+            return time.get_time_hh_mm_from_seconds(0)
+        # Get time in case of continuing from the previous clocking
+        user_last_clock = before_clockings[-1]
+        if user_last_clock.action.lower() == IN_ACTION or user_last_clock.action.lower() == RETURN_ACTION:
+            lower_limit = f"{time.get_current_date_time().split(' ')[0]} 00:00:00"
+            time_difference = time.get_time_difference(lower_limit, time.get_current_date_time(timezone))
+            return time.get_time_hh_mm_from_seconds(time_difference)
+        # The user closed the previous days and has not started yet
+        else:
+            return time.get_time_hh_mm_from_seconds(0)
 
     # Calculate the number of worked seconds
     worked_seconds = 0
@@ -91,12 +107,19 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
         before_action = clock_item.action.lower()
         before_action_datetime = time.datetime_to_str(clock_item.date_time)
 
+    # Get information about the last clockings to calculate time not closed if necessary
     last_clocked_action = clock_data[-1].action.lower()
     last_clocked_datetime = time.datetime_to_str(clock_data[-1].date_time)
 
     # Add the time remaining until now before pausing or exiting (time worked but not clocked)
     if last_clocked_action != OUT_ACTION and last_clocked_action != PAUSE_ACTION:
-        last_clocked_datetime_end = f"{last_clocked_datetime.split(' ')[0]} 23:59:59"
+        # If the date is today, then add up to the current time
+        if last_clocked_datetime.split(' ')[0] == time.get_current_date_time().split(' ')[0]:
+            last_clocked_datetime_end = time.get_current_date_time()
+        # If the date is not today, then add to the end of that day
+        else:
+            last_clocked_datetime_end = f"{last_clocked_datetime.split(' ')[0]} 23:59:59"
+        # Add the working time not closed
         last_non_clocked_time = time.get_time_difference(last_clocked_datetime, last_clocked_datetime_end)
         worked_seconds += last_non_clocked_time
 

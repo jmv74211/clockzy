@@ -93,8 +93,8 @@ def get_time_difference(datetime_from, datetime_to, unit=SECONDS):
     """Get the time difference between two datetimes (time subtraction).
 
     Args:
-        datetime_from (str): Upper limit datetime in format %Y-%m-%d %H:%M:%S
-        datetime_to (str): Upper limit datetime  in format %Y-%m-%d %H:%M:%S
+        datetime_from (str): Lower limit datetime in format %Y-%m-%d %H:%M:%S
+        datetime_to (str): Upper limit datetime in format %Y-%m-%d %H:%M:%S
         unit (str): Unit of time to express the result. enum: ['day', 'hour', 'minute', 'second']
 
     Returns:

@@ -18,5 +18,6 @@ test_parameters = [(item['clocks'], item['time_range'], item['expected_worked_ti
                          test_parameters, ids=test_ids)
 def test_calculate_worked_time(clocking_data, time_range, expected_worked_time, fake_current_date, clock):
     """Test the calculate_worked_time function from the clocking module"""
-    with freezegun.freeze_time(fake_current_date):
+    # Need to specify the offset due to the usage of timezones when getting the current datetime.
+    with freezegun.freeze_time(fake_current_date, tz_offset=-1):
         assert calculate_worked_time(no_intratime_user_parameters['id'], time_range) == expected_worked_time
