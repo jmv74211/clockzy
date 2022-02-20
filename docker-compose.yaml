@@ -8,6 +8,26 @@ services:
             - MYSQL_ROOT_PASSWORD
         ports:
             - 3306:3306
+
+    clockzy-api:
+        build:
+            context: .
+            dockerfile: ./deploy/Dockerfile
+        ports:
+            - 10050:10050
+        volumes:
+            - ./:/app
+            - /etc/timezone:/etc/timezone:ro
+            - /etc/localtime:/etc/localtime:ro
+        working_dir: /app
+        command: >
+                bash -c "python3 setup.py install &&
+                         python3 /app/src/clockzy/services/clockzy_service.py"
+        depends_on:
+            - mysql-service
+        links:
+            - mysql-service
+
     adminer:
         image: adminer
         restart: always
