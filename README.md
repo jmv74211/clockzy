@@ -1,10 +1,37 @@
 # Clockzy
 
+![Status](https://img.shields.io/badge/Version-1.0-blue.svg)
+![Status](https://img.shields.io/badge/Status-stable-green.svg)
+
 Slack application that allows users to keep track of their working hours and history through slack commands.
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/clockzy_logo.png">
 </p>
+
+- [Clockzy](#clockzy)
+- [Introduction](#introduction)
+- [How to use](#how-to-use)
+  * [Considerations before starting](#considerations-before-starting)
+  * [Create your user](#create-your-user)
+  * [Clock your actions](#clock-your-actions)
+  * [Check your worked time](#check-your-worked-time)
+  * [Check your worked time history](#check-your-worked-time-history)
+  * [Check your clock history](#check-your-clock-history)
+  * [Check your today info](#check-your-today-info)
+  * [Check the availability of another user](#check-the-availability-of-another-user)
+  * [Create an username alias](#create-an-username-alias)
+  * [Check the aliases already created](#check-the-aliases-already-created)
+  * [Link your account to the Intratime app](#link-your-account-to-the-intratime-app)
+  * [Unlink your Intratime account](#unlink-your-intratime-account)
+  * [Update your user information](#update-your-user-information)
+  * [Delete your user](#delete-your-user)
+  * [Get commands help](#get-commands-help)
+- [How to deploy](#how-to-deploy)
+  * [Configure your slack app](#configure-your-slack-app)
+  * [Configure your app settings](#configure-your-app-settings)
+  * [Run the app](#run-the-app)
+- [Contributions](#contributions)
 
 # Introduction
 
@@ -289,3 +316,82 @@ To display the set of available commands and their help menu run the following c
 <p align="center">
     <img src="https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/clockzy_help.png">
 </p>
+
+---
+
+# How to deploy
+
+## Configure your slack app
+
+First you will have to create a slack application. You can create one from this website
+[https://api.slack.com/](https://api.slack.com/).
+
+**Get slack app credentials**
+
+Once created, you will have to obtain your **app tokens**. You can find it in `OAuth & Permissions section`.
+In this case, it is only necessary to get the `Bot User OAuth Token`. It will have a format like the following:
+
+_Bot User OAuth Token_
+```
+xoxb-xxxxxxxxxxxxx-xxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+It will also be necessary to obtain the **signing secret key** to verify that the requests come from our slack app. You
+can find this key in _Basic information_ section.
+
+**Set your token scopes**
+
+It is necessary to define the scope of permissions that our slack application will have. You can configure them in `OAuth & Permissions` section in the slack app configuration. The needed token scopes are as follows:
+
+- **Bot token scopes**: `commands`, `users:read`.
+
+**Define your commands**
+
+Commands enable users to interact with your app from within Slack. In this case, we have to define the following
+commands in the slack app configuration:
+
+- `/sign-up`: _https://<domain_name>/sign-up_
+- `/delete-user`: _https://<domain_name>/delete-user_
+- `/update-user`: _https://<domain_name>/update-user_
+- `/clock`: _https://<domain_name>/clock_
+- `/time`: _https://<domain_name>/time_
+- `/clock-history`: _https://<domain_name>/clock-history_
+- `/time-history`: _https://<domain_name>/time-history_
+- `/today`: _https://<domain_name>/today_
+- `/help`: _https://<domain_name>/help_
+- `/alias`: _https://<domain_name>/alias_
+- `/get-aliases`: _https://<domain_name>/get-aliases_
+- `/check`: _https://<domain_name>/check_
+- `/enable-intratime`: _https://<domain_name>/enable-intratime_
+- `/disable-intratime`: _https://<domain_name>/disable-intratime_
+
+## Configure your app settings
+
+You have to configure the `clockzy` application modifying the
+[settings.py](https://github.com/jmv74211/clockzy/blob/master/src/clockzy/config/settings.py)
+file.
+
+In addition, you have to update the [.env](https://github.com/jmv74211/clockzy/blob/master/.env) file
+to enter your `MYSQL_ROOT_PASSWORD` credentials.
+
+In case of modifying default ports ..., take a look at the
+[docker-compose.yaml](https://github.com/jmv74211/clockzy/blob/master/docker-compose.yaml) file
+and update to your new values.
+
+## Run the app
+
+Once the application is configured (see the previous steps), Running the application is very simple, you just need
+to have installed [docker](https://www.docker.com/get-started) and
+[docker-compose](https://docs.docker.com/compose/install/), and execute the following command in root directory.
+
+```bash
+docker-compose up
+```
+
+All services will be automatically started.
+
+---
+
+# Contributions
+
+Any doubt or suggestion, you can create issues and/or make pull requests :)
