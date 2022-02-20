@@ -127,7 +127,7 @@ def build_time_history_message(user_id, time_range, timezone):
     Returns:
         str: Slack message.
     """
-    from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
+    from_time = f"{time.get_current_date(timezone)} 00:00:00" if time_range == time.TODAY else \
                 (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
     header = f"{time_range.upper()} HISTORY"
     summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time(timezone)}*_\n"
@@ -190,7 +190,7 @@ def build_clock_history_message(user_id, time_range, timezone):
     Returns:
         str: Slack message.
     """
-    from_time = f"{time.get_current_date()} 00:00:00" if time_range == time.TODAY else \
+    from_time = f"{time.get_current_date(timezone)} 00:00:00" if time_range == time.TODAY else \
                 (time.get_first_week_day() if time_range == time.WEEK else time.get_first_month_day())
     header = f"{time_range.upper()} HISTORY"
     summary = f"{CALENDAR} From _*{from_time}*_ to _*{time.get_current_date_time(timezone)}*_\n"
