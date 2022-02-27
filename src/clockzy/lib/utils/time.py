@@ -210,3 +210,19 @@ def sum_hh_mm_time(time_1, time_2):
     result = get_num_seconds_from_hh_mm_time(time_1) + get_num_seconds_from_hh_mm_time(time_2)
 
     return get_time_hh_mm_from_seconds(int(result))
+
+
+def get_expiration_date_time(time_expiration=60, timezone='Europe/Berlin'):
+    """Get the expiration time, adding a expiration time to the current time.
+
+    Args:
+        time_expiration (int): Number of seconds to add to the current time.
+        timezone (str): Timezone.
+
+    Returns:
+        str: Expiration date time.
+    """
+    current_date_time = datetime.strptime(get_current_date_time(timezone), "%Y-%m-%d %H:%M:%S")
+    expiration_date_time = current_date_time + timedelta(seconds=time_expiration)
+
+    return datetime.strftime(expiration_date_time, "%Y-%m-%d %H:%M:%S")
