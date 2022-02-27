@@ -7,6 +7,7 @@ CLOCK_TABLE = 'clock'
 COMMANDS_HISTORY_TABLE = 'command_history'
 CONFIG_TABLE = 'config'
 ALIAS_TABLE = 'alias'
+TEMPORARY_CREDENTIALS_TABLE = 'temporary_credentials'
 
 USER_TABLE_SCHEMA = """ \
     CREATE TABLE IF NOT EXISTS user (
@@ -60,5 +61,15 @@ ALIAS_TABLE_SCHEMA = """ \
         alias VARCHAR(100) NOT NULL,
         PRIMARY KEY (id),
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
+    )Engine=InnoDB;
+"""
+
+TEMPORARY_CREDENTIALS_TABLE_SCHEMA = """\
+    CREATE TABLE IF NOT EXISTS temporary_credentials (
+       user_id VARCHAR(100) NOT NULL,
+       password VARCHAR(30) NOT NULL,
+       expiration_date_time DATETIME NOT NULL,
+       PRIMARY KEY (user_id),
+       FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
     )Engine=InnoDB;
 """
