@@ -1,5 +1,7 @@
 import base64
+import random
 import os
+import string
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -62,3 +64,22 @@ def decrypt(encrypted_text, password=settings.CIPHER_KEY):
     deciphered_text = cipher.decrypt(encrypted_text.encode()).decode()
 
     return deciphered_text
+
+
+def generate_random_temporary_password(length=16):
+    """Generate a random password.
+
+    Args:
+        length (int): Password length.
+
+    Returns:
+        str: Password string.
+    """
+    characters = list(string.ascii_letters + string.digits + "!@#$%^&*()")
+
+    if length > len(characters):
+        raise ValueError(f"The length cannot exceed {len(characters)} characters")
+
+    random.shuffle(characters)
+
+    return ''.join(characters[:length])
