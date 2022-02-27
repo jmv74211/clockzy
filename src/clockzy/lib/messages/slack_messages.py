@@ -4,6 +4,7 @@ from clockzy.lib.slack import slack_core as slack
 from clockzy.lib.db.database_interface import run_query, get_config_object, get_clock_data_in_time_range, \
                                               get_last_clock_from_user
 from clockzy.lib.utils import time
+from clockzy.config.settings import WEB_APP_URL
 from clockzy.lib.clocking import calculate_worked_time
 from clockzy.lib.db.db_schema import ALIAS_TABLE, USER_TABLE
 from clockzy.lib.clocking import IN_ACTION, PAUSE_ACTION, RETURN_ACTION, OUT_ACTION
@@ -341,6 +342,13 @@ def build_user_status_message(user_id, user_name):
         return f"The user `{user_name}` is not available {RED_CIRCLE}"
 
 
+def build_temporary_credentials_message(user_id, password, expiration_time):
+    return f"Your new management temporary credentials has been generated.\n" \
+           f"*Username*: `{user_id}`\n*Password*: `{password}`\n" \
+           f">_Note: The credentials expires in {expiration_time} seconds_\n" \
+           f"The management web is accessible in {WEB_APP_URL}"
+
+
 def send_slack_message(message_id, response_url, extra_args=[]):
     """Send a predefined slack message.
 
@@ -442,6 +450,8 @@ def send_slack_message(message_id, response_url, extra_args=[]):
     elif message_id == 'ERROR_GETTING_USER_PROFILE_INFO':
         message = build_error_message('Could not get your profile info to set your time zone. Please contact with the '
                                       'app admistrator')
+    elif message_id == 'TEMPORARY_CREDENTIALS':
+        message = build_temporary_credentials_message(extra_args[0], extra_args[1], extra_args[2])
     else:
         logging.getLogger('clockzy').error(f"Undefined {message_id} message ID")
         slack.post_ephemeral_response_message(build_error_message(f"Undefined {message_id} slack message ID. Please  "

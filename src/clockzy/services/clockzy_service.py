@@ -4,7 +4,7 @@ from http import HTTPStatus
 from functools import wraps
 from os.path import join
 
-from clockzy.lib.db.db_schema import USER_TABLE, ALIAS_TABLE
+from clockzy.lib.db.db_schema import USER_TABLE, ALIAS_TABLE, TEMPORARY_CREDENTIALS_TABLE
 from clockzy.lib import global_vars as var
 from clockzy.lib.messages import api_responses as ar
 from clockzy.lib.models.slack_request import SlackRequest
@@ -13,6 +13,7 @@ from clockzy.lib.models.clock import Clock
 from clockzy.lib.models.command_history import CommandHistory
 from clockzy.lib.models.config import Config
 from clockzy.lib.models.alias import Alias
+from clockzy.lib.models.temporary_credentials import TemporaryCredentials
 from clockzy.lib.handlers import codes as cd
 from clockzy.lib.slack import slack_core as slack
 from clockzy.config import settings
@@ -23,7 +24,7 @@ from clockzy.lib.db.database_interface import item_exists, get_user_object, get_
                                               get_config_object
 from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_time
 from clockzy.lib import intratime
-from clockzy.lib.utils import crypt
+from clockzy.lib.utils import crypt, time
 from clockzy.lib.messages import logger_messages as lgm
 
 
@@ -33,82 +34,87 @@ app_logger = logging.getLogger('clockzy')
 
 ALLOWED_COMMANDS = {
     var.ECHO_REQUEST: {
-        'description': 'Development endpoint',
+        'description': 'Development endpoint.',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.SIGN_UP_REQUEST: {
-        'description': 'Sign up for this app',
+        'description': 'Sign up for this app.',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.UPDATE_USER_REQUEST: {
-        'description': 'Update the username and time zone with the slack profile info',
+        'description': 'Update the username and time zone with the slack profile info.',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.DELETE_USER_REQUEST: {
-        'description': 'Delete your user from this app',
+        'description': 'Delete your user from this app.',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.CLOCK_REQUEST: {
-        'description': 'Register a clocking action',
+        'description': 'Register a clocking action.',
         'allowed_parameters': ['in', 'pause', 'return', 'out'],
         'free_parameters': False,
         'num_parameters': 1
     },
     var.TIME_REQUEST: {
-        'description': 'Get the time worked for the specified time period',
+        'description': 'Get the time worked for the specified time period.',
         'allowed_parameters': ['today', 'week', 'month'],
         'free_parameters': False,
         'num_parameters': 1
     },
     var.TIME_HISTORY_REQUEST: {
-        'description': 'Get the time worked history for the specified time period',
+        'description': 'Get the time worked history for the specified time period.',
         'allowed_parameters': ['today', 'week', 'month'],
         'free_parameters': False,
         'num_parameters': 1
     },
     var.CLOCK_HISTORY_REQUEST: {
-        'description': 'Get the clock history data for the specified time period',
+        'description': 'Get the clock history data for the specified time period.',
         'allowed_parameters': ['today', 'week', 'month'],
         'free_parameters': False,
         'num_parameters': 1
     },
     var.TODAY_INFO_REQUEST: {
-        'description': 'Get total time worked and clockings made today',
+        'description': 'Get total time worked and clockings made today.',
         'allowed_parameters': [],
         'num_parameters': 0
     },
     var.ADD_ALIAS_REQUEST: {
-        'description': 'Add an alias for a given user name',
+        'description': 'Add an alias for a given user name.',
         'allowed_parameters': [],
         'free_parameters': True,
         'num_parameters': 2,
         'parameters_description': '<user_name> <new_alias_name>'
     },
     var.GET_ALIASES_REQUEST: {
-        'description': 'Get all user aliases',
+        'description': 'Get all user aliases.',
         'allowed_parameters': [],
         'num_parameters': 0,
     },
     var.CHECK_USER_STATUS_REQUEST: {
-        'description': 'Check the user status',
+        'description': 'Check the user status.',
         'allowed_parameters': [],
         'free_parameters': True,
         'num_parameters': 1,
         'parameters_description': '<user_name_or_alias>'
     },
     var.ENABLE_INTRATIME_INTEGRATION_REQUEST: {
-        'description': 'Link clock registrations to the intratime application',
+        'description': 'Link clock registrations to the intratime application.',
         'allowed_parameters': [],
         'free_parameters': True,
         'num_parameters': 2,
         'parameters_description': '<intratime_mail> <intratime_password>'
     },
     var.DISABLE_INTRATIME_INTEGRATION_REQUEST: {
-        'description': 'Disable the intratime integration',
+        'description': 'Disable the intratime integration.',
+        'allowed_parameters': [],
+        'num_parameters': 0
+    },
+    var.MANAGEMENT_REQUEST: {
+        'description': 'Generate temporary credentials to access the administration panel.',
         'allowed_parameters': [],
         'num_parameters': 0
     }
@@ -661,6 +667,31 @@ def disable_intratime_integration(slack_request_object, user_data):
     app_logger.error(lgm.success_disabling_intratime_sync(user_data.user_name, user_data.id))
     send_slack_message('DISABLE_INTRATIME_SUCCESS', response_url)
 
+    return empty_response()
+
+
+@clockzy_service.route(var.MANAGEMENT_REQUEST, methods=['POST'])
+@validate_slack_request
+@validate_user
+@command_monitoring
+def get_management_credentials(slack_request_object, user_data):
+    """Generate temporary credentials to access the administration panel"""
+    CREDENTIAL_TIME_EXPIRATION = 60
+    response_url = slack_request_object.response_url
+
+    # Generate new temporary credentials
+    new_temporary_credentials = TemporaryCredentials(user_data.id, crypt.generate_random_temporary_password())
+
+    # Save or update the new credentials in the DB
+    if item_exists({'user_id': user_data.id}, TEMPORARY_CREDENTIALS_TABLE):
+        new_temporary_credentials.update()
+    else:
+        new_temporary_credentials.save()
+
+    # Send the slack message
+    send_slack_message('TEMPORARY_CREDENTIALS', response_url, [new_temporary_credentials.user_id,
+                                                               new_temporary_credentials.password,
+                                                               CREDENTIAL_TIME_EXPIRATION])
     return empty_response()
 
 
