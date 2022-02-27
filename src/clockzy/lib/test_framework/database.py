@@ -1,5 +1,7 @@
 from clockzy.lib.utils.time import get_current_date_time
+from clockzy.lib.utils.crypt import generate_random_temporary_password
 from clockzy.lib.models.user import User
+from clockzy.lib.utils.time import get_expiration_date_time
 from clockzy.lib.db.database_interface import get_database_data_from_objects
 from clockzy.lib.db.db_schema import USER_TABLE
 
@@ -15,6 +17,8 @@ command_history_parameters = {'user_id': intratime_user_parameters['id'], 'comma
 config_parameters = {'user_id': intratime_user_parameters['id'], 'intratime_integration': False,
                      'time_zone': 'Europe/Madrid'}
 alias_parameters = {'user_id': intratime_user_parameters['id'], 'alias': 'test'}
+temporary_credentials_parameters = {'user_id': intratime_user_parameters['id'],
+                                    'password': generate_random_temporary_password()}
 
 
 def clean_test_data():

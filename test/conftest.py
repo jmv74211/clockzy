@@ -6,6 +6,7 @@ from clockzy.lib.models.clock import Clock
 from clockzy.lib.models.command_history import CommandHistory
 from clockzy.lib.models.config import Config
 from clockzy.lib.models.alias import Alias
+from clockzy.lib.models.temporary_credentials import TemporaryCredentials
 from clockzy.lib.utils.file import read_json
 from clockzy.lib.test_framework.database import no_intratime_user_parameters
 
@@ -128,3 +129,9 @@ def clock(clocking_data):
 
     # Delete the test user and all its data
     clock_user.delete()
+
+
+@pytest.fixture(scope="function")
+def add_pre_temporary_credentials(credentials_parameters):
+    test_temporary_credentials = TemporaryCredentials(**credentials_parameters)
+    test_temporary_credentials.save()
