@@ -1,0 +1,15 @@
+
+body {
+    background-color: #F8F8F8;
+}
+
+.login {
+    background-color: white;
+    border-radius: 5px;
+    margin: 0 auto;
+    padding: 2px;
+}
+
+.pcolor {
+    background-color: #14255C;
+}

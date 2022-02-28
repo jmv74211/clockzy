@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container-fluid p-5 text-white text-center pcolor">
+    <h1>Management panel</h1>
+  </div>
+
+  <div class="container">
+    <div class="login col-8 mt-5">
+      <div class="login-header text-center">
+        <img class="clockzy-logo" src="{{ url_for('static', filename='images/clockzy_logo.png') }}"/>
+      </div>
+      <div class="login-form pcolor">
+        <form class="text-center" method="POST" action="/check-credentials">
+          <input type="text" class="col-sm-10 col-md-4 m-2" placeholder="Enter user ID" name="user_id">
+          <input type="password" class="col-sm-10 col-md-4 m-2" placeholder="Enter password" name="password">
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+      </div>
+      {% if error is defined %}
+      <div class="alert alert-danger mt-3">
+        <strong>Error:</strong> {{ error }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
