@@ -226,3 +226,19 @@ def get_expiration_date_time(time_expiration=60, timezone='Europe/Berlin'):
     expiration_date_time = current_date_time + timedelta(seconds=time_expiration)
 
     return datetime.strftime(expiration_date_time, "%Y-%m-%d %H:%M:%S")
+
+
+def date_time_has_expired(expiration_date_time, timezone='Europe/Berlin'):
+    """Check if a specific datetime has expired from the current date time.
+
+    Args:
+        expiration_date_time (datetime): Date time to check.
+        timezone (str): Timezone.
+
+    Returns:
+        boolean: True if the date_time has expired, False otherwise.
+
+    """
+    current_date_time = datetime.strptime(get_current_date_time(timezone), '%Y-%m-%d %H:%M:%S')
+
+    return current_date_time > expiration_date_time
