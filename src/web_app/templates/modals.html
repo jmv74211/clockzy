@@ -1,0 +1,92 @@
+
+<!-- UPDATE CLOCKING MODAL -->
+<div class="modal" id="modal_edit_data">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+    <!-- Modal Header -->
+    <div class="modal-header background-pcolor cwhite">
+      <h4 class="modal-title">Edit clock data</h4>
+      <button type="button" class="btn-close background-white" data-bs-dismiss="modal"></button>
+    </div>
+
+    <!-- Modal body -->
+    <div class="modal-body">
+      <input type="text" name='date_time' id="datetime_edit_clocking" placeholder="date_time"/>
+      <!-- <select name="action" id="action_select">
+      <option value="IN">IN</option>
+      <option value="PAUSE">PAUSE</option>
+      <option value="RETURN">RETURN</option>
+      <option value="OUT">OUT</option>
+    </select> -->
+      <input type="text" name='action' id="action_edit_clocking" placeholder="action"/>
+      <input type="hidden" id="id_edit_clocking"/>
+      <div class="alert alert-danger mt-2" id="clocking_edit_validation">
+      </div>
+    </div>
+
+    <!-- Modal footer -->
+    <div class="modal-footer">
+      <button type="button" id="button_update_clocking" class="btn btn-success d-flex mx-auto">Update</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CLOCKING MODAL -->
+<div class="modal" id="modal_add_clocking_data">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header background-pcolor cwhite">
+        <h4 class="modal-title">Add clock data</h4>
+        <button type="button" class="btn-close background-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Modal body -->
+      <div class="modal-body">
+        <input type="text" name='date_time' id="datetime_add_clocking" placeholder="yyyy-mm-dd hh:mm:ss"/>
+        <select name="action" id="action_add_clocking">
+          <option value="IN">IN</option>
+          <option value="PAUSE">PAUSE</option>
+          <option value="RETURN">RETURN</option>
+          <option value="OUT">OUT</option>
+        </select>
+        <div class="alert alert-danger mt-2" id="clocking_edit_validation">
+        </div>
+      </div>
+
+      <!-- Modal footer -->
+      <div class="modal-footer">
+        <button type="button" id="button_add_clocking" class="btn btn-success d-flex mx-auto">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CLOCKING MODAL -->
+<div class="modal" id="modal_delete_clocking_data">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header background-pcolor cwhite">
+        <h4 class="modal-title">Delete clock data</h4>
+        <button type="button" class="btn-close background-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Modal body -->
+      <div class="modal-body">
+        <input type="hidden" id="id_delete_clocking"/>
+        <p>Are you sure to delete this clock?</p>
+      </div>
+
+      <!-- Modal footer -->
+      <div class="modal-footer">
+        <button type="button" id="button_delete_clocking_yes" class="btn btn-success d-flex mx-auto">Yes</button>
+        <button type="button" id="button_delete_clocking_no" class="btn btn-danger d-flex mx-auto" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
