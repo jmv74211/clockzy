@@ -242,3 +242,20 @@ def date_time_has_expired(expiration_date_time, timezone='Europe/Berlin'):
     current_date_time = datetime.strptime(get_current_date_time(timezone), '%Y-%m-%d %H:%M:%S')
 
     return current_date_time > expiration_date_time
+
+
+def add_seconds_to_datetime(date_time, seconds):
+    """Add a number of seconds to the specified date_time.
+
+    Args:
+        date_time (str): Date time.
+        seconds (int): Number of seconds to add to the date time.
+
+    Returns:
+        str: Result datetime with the added seconds.
+    """
+    date_time_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
+    result_date_time_object = date_time_object + timedelta(seconds=seconds)
+    result_date_time = datetime.strftime(result_date_time_object, '%Y-%m-%d %H:%M:%S')
+
+    return result_date_time
