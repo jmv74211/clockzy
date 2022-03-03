@@ -1,8 +1,11 @@
-from flask import Flask, request, render_template, jsonify, redirect, url_for, session
+from flask import Flask, request, render_template, make_response, redirect, url_for, session
 from functools import wraps
+from http import HTTPStatus
 
 import controller
 import views
+from clockzy.lib.handlers.codes import SUCCESS
+
 
 app = Flask(__name__)
 app.secret_key = "super secret key"
@@ -17,6 +20,11 @@ def user_logged(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return redirect(url_for('index'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -46,7 +54,52 @@ def check_credentials():
 @app.route('/index', methods=['GET', 'POST'])
 @user_logged
 def index():
-    return views.index()
+    clocking_data = controller.get_clocking_data(session['user_id'])
+    return views.index(session['user_id'], clocking_data)
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+@user_logged
+def logout():
+    session.pop('logged_in')
+    session.pop('user_id')
+    return views.login()
+
+# def validate_clocking_data
+
+
+@app.route('/update_clocking_data', methods=['POST'])
+def update_clocking_data():
+    request_data = request.get_json()
+
+    update_result = controller.update_clocking_data(request_data)
+
+    if update_result == SUCCESS:
+        return make_response('', HTTPStatus.OK)
+    else:
+         return make_response('', HTTPStatus.BAD_REQUEST)
+
+@app.route('/add_clocking_data', methods=['POST'])
+def add_clocking_data():
+    request_data = request.get_json()
+
+    add_result = controller.add_clocking_data(request_data)
+
+    if add_result == SUCCESS:
+        return make_response('', HTTPStatus.OK)
+    else:
+         return make_response('', HTTPStatus.BAD_REQUEST)
+
+@app.route('/delete_clocking_data', methods=['POST'])
+def delete_clocking_data():
+    request_data = request.get_json()
+
+    delete_result = controller.delete_clocking_data(request_data)
+
+    if delete_result == SUCCESS:
+        return make_response('', HTTPStatus.OK)
+    else:
+         return make_response('', HTTPStatus.BAD_REQUEST)
 
 
 if __name__ == '__main__':
