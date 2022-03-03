@@ -7,5 +7,5 @@ def login(error_message=None):
         return render_template('login.html')
 
 
-def index():
-    return render_template('index.html')
+def index(user_id, clocking_data = []):
+    return render_template('index.html', user_id=user_id, clocking_data=clocking_data)
