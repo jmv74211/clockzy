@@ -4,6 +4,7 @@ Module to group calls to the database.
 from pymysql import MySQLError
 
 from clockzy.lib.db.database import Database
+from clockzy.lib.utils.time import datetime_to_str
 from clockzy.lib.handlers.codes import SUCCESS, OPERATION_ERROR
 
 
@@ -181,8 +182,8 @@ def get_config_object(user_id):
         user_id (str): User identifier to get the data.
 
     Returns:
-        Clock: Last clock object with the DB data.
-        None: If the user does not have any registration made in the DB.
+        Config: Config object with the DB data.
+        None: If the user does not have any configuration data in the DB.
     """
     # Avoid circular import
     from clockzy.lib.db.db_schema import CONFIG_TABLE
@@ -196,6 +197,32 @@ def get_config_object(user_id):
     config_object = Config(user_id, config_data[0][1], config_data[0][2])
 
     return config_object
+
+
+def get_clock_object(clock_id):
+    """Get the clock object from DB.
+
+    Args:
+        clock_id (str): Clock identifier to get the data.
+
+    Returns:
+        Clock: Clock object with the DB data.
+        None: If the Clock does not exist.
+    """
+    # Avoid circular import
+    from clockzy.lib.db.db_schema import CLOCK_TABLE
+    from clockzy.lib.models.clock import Clock
+
+    clock_data = get_database_data_from_objects({'id': clock_id}, CLOCK_TABLE)
+
+    if len(clock_data) == 0:
+        return None
+
+    clock_object = Clock(user_id=clock_data[0][1], action=clock_data[0][2], date_time=datetime_to_str(clock_data[0][3]))
+    clock_object.id = clock_data[0][0]
+    clock_object.local_date_time = datetime_to_str(clock_data[0][4])
+
+    return clock_object
 
 
 def get_clock_data_in_time_range(user_id, datetime_from, datetime_to):
