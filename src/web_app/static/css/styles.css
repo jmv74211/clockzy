@@ -3,6 +3,27 @@ body {
     background-color: #F8F8F8;
 }
 
+a {
+    text-decoration: none;
+}
+
+table {
+    font-family: arial, sans-serif;
+    /* border-collapse: collapse; */
+    border-color: gray;
+    width: 100%;
+  }
+
+  td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+  }
+
+  tr:nth-child(even) {
+    background-color: #dddddd;
+  }
+
 .login {
     background-color: white;
     border-radius: 5px;
@@ -12,4 +33,55 @@ body {
 
 .pcolor {
     background-color: #14255C;
+}
+
+.cwhite {
+    color:white
+}
+
+.background-pcolor {
+    background-color: #14255C
+}
+
+.background-white {
+    background-color: white;
+}
+
+.red {
+    background-color: red;
+}
+
+.blue {
+    background-color: blue;
+}
+
+.logout {
+    color: #14255C;
+    font-size: large;
+}
+
+.logout:hover {
+    text-decoration: underline;
+}
+
+.user_id {
+    color: #14255C;
+    font-size: large;
+}
+
+.m0auto {
+    margin:0 auto;
+}
+
+#clocking_edit_validation {
+    display: none;
+}
+
+#search_input {
+    width: 50%;
+    margin: 0 auto;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
 }
