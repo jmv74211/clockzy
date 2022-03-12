@@ -255,3 +255,38 @@ def get_clock_data_in_time_range(user_id, datetime_from, datetime_to):
         clock_objects.append(clock)
 
     return clock_objects
+
+
+def get_filtered_clock_data(user_id, search_filter=None):
+    """Get the clocking data from a specific user, appliying a custom filter.
+
+    Args:
+        user_id (str): User identifier to get the data.
+        search_filter (str): Search filter for LIKE sql expression.
+
+    Returns:
+        List(Clock): Clock data list.
+        None: If the user does not have any clocking data betweeen the specified range time.
+    """
+    from clockzy.lib.db.db_schema import CLOCK_TABLE
+    from clockzy.lib.models.clock import Clock
+
+    if search_filter == '%' or search_filter == '%%':
+        query = f"SELECT * FROM {CLOCK_TABLE} WHERE user_id='{user_id}'"
+    else:
+        query = f"SELECT * FROM {CLOCK_TABLE} WHERE user_id='{user_id}' AND (date_time LIKE '{search_filter}' " \
+                f"OR action LIKE'{search_filter}')"
+
+    clock_data = run_query(query)
+
+    if len(clock_data) == 0:
+        return []
+
+    clock_objects = []
+
+    for clock_item in clock_data:
+        clock = Clock(clock_item[1], clock_item[2], clock_item[3])
+        clock.id = clock_item[0]
+        clock_objects.append(clock)
+
+    return clock_objects
