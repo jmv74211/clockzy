@@ -9,20 +9,27 @@ a {
 
 table {
     font-family: arial, sans-serif;
-    /* border-collapse: collapse; */
-    border-color: gray;
+    border-radius:6px;
     width: 100%;
   }
 
-  td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
+th {
     padding: 8px;
-  }
+    text-align: left;
+    color: white;
+    background-color: #14255C;
+    border: 1px solid #14255C;
+}
 
-  tr:nth-child(even) {
+tr:nth-child(even) {
     background-color: #dddddd;
   }
+
+td {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 6px;
+}
 
 .login {
     background-color: white;
@@ -36,27 +43,19 @@ table {
 }
 
 .cwhite {
-    color:white
+    color:white;
+}
+
+.bg-white {
+    background-color: white;
 }
 
 .background-pcolor {
     background-color: #14255C
 }
 
-.background-white {
-    background-color: white;
-}
-
-.red {
-    background-color: red;
-}
-
-.blue {
-    background-color: blue;
-}
-
 .logout {
-    color: #14255C;
+    color: #dc3545;
     font-size: large;
 }
 
@@ -64,8 +63,8 @@ table {
     text-decoration: underline;
 }
 
-.user_id {
-    color: #14255C;
+.user-id {
+    color: #0d6efd;
     font-size: large;
 }
 
@@ -73,8 +72,14 @@ table {
     margin:0 auto;
 }
 
-#clocking_edit_validation {
-    display: none;
+#input_datetime_edit_clocking {
+    float: left;
+    margin-right: 3px;
+}
+
+#button_delete_clocking_yes{
+    padding-left: 22px;
+    padding-right: 22px;
 }
 
 #search_input {
@@ -84,4 +89,21 @@ table {
     font-size: 1rem;
     border: 1px solid #ced4da;
     border-radius: .25rem;
+}
+
+.w100 {
+    width: 100%;
+}
+
+.w90 {
+    width: 90%;
+}
+
+@media only screen and (min-width: 992px){
+    .mv1{
+        float:right
+    }
+    .float-md-left{
+        float:left
+    }
 }
