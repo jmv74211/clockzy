@@ -259,3 +259,47 @@ def add_seconds_to_datetime(date_time, seconds):
     result_date_time = datetime.strftime(result_date_time_object, '%Y-%m-%d %H:%M:%S')
 
     return result_date_time
+
+
+def validate_date_time_format(date_time, date_time_format='%Y-%m-%d %H:%M:%S'):
+    """Validate the date_time expected format.
+
+    Args:
+        date_time (str): Date time to check.
+
+    Returns:
+        boolean: True if date_time has the expected format (%Y-%m-%d %H:%M:%S), False otherwise.
+
+    """
+    try:
+        datetime.strptime(date_time, date_time_format)
+        return True
+    except ValueError as e:
+        return False
+
+
+def check_if_date_time_belongs_to_current_year(date_time):
+    """Check if the specified date_time belongs to the current year.
+
+    Args:
+        date_time (str): Date time to check.
+
+    Returns:
+        boolean: True if the date_time belongs to the current year, False otherwise.
+    """
+    date_time_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
+
+    return date_time_object.year == datetime.now().year
+
+
+def check_if_future_date_time(date_time):
+    """Check if the specified date_time belongs to the future.
+
+    Args:
+        date_time (str): Date time to check.
+    Returns:
+        boolean: True if the specified date_time belongs to the future, False otherwise.
+    """
+    date_time_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
+
+    return date_time_object > datetime.now()
