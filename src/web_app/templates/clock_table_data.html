@@ -1,0 +1,24 @@
+<!--Table diplay-->
+<div class="col-md-8 m0auto">
+  {% if (clocking_data is not defined) or (not clocking_data) %}
+  <div class="alert alert-primary">
+    No clocking data
+  </div>
+  {% else %}
+    <table>
+      <tr>
+        <th>Datetime</th>
+        <th>Action</th>
+      </tr>
+      {% for clocking in clocking_data %}
+          <tr>
+            <td class="row-datetime">{{ clocking[1] }}</td>
+            <td class="row-action">{{ clocking[2] }}</td>
+            <td><button type="button" data="{{ clocking }}" class="button_open_modal_edit_clocking btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal_edit_data"><i class="fas fa-edit"></i></button>
+                <button type="button" data="{{ clocking }}" class="button_open_modal_delete_clocking btn btn-danger" data-bs-toggle="modal" data-bs-target="#modal_delete_clocking_data"><i class="fas fa-trash-alt"></i></button>
+            </td>
+          </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</div>

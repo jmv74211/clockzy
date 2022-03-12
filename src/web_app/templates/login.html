@@ -6,14 +6,24 @@
 
   <div class="container">
     <div class="login col-8 mt-5">
-      <div class="login-header text-center">
-        <img class="clockzy-logo" src="{{ url_for('static', filename='images/clockzy_logo.png') }}"/>
+      <div class="row text-center bg-white">
+        <div class="col-8 col-md-7 col-lg-5 col-xl-4 mx-auto">
+          <img class="w100 clockzy-logo" src="{{ url_for('static', filename='images/clockzy_logo.png') }}"/>
+        </div>
       </div>
-      <div class="login-form pcolor">
-        <form class="text-center" method="POST" action="/check-credentials">
-          <input type="text" class="col-sm-10 col-md-4 m-2" placeholder="Enter user ID" name="user_id">
-          <input type="password" class="col-sm-10 col-md-4 m-2" placeholder="Enter password" name="password">
-          <button type="submit" class="btn btn-primary">Submit</button>
+      <div class="row pcolor p-2">
+        <form class="text-center" method="POST" action="/check_credentials">
+          <div class="row">
+            <div class="col-12 offset-lg-1 col-lg-4 mt-2">
+              <input type="text" class="w100" placeholder="Enter user ID" name="user_id">
+            </div>
+            <div class="col-12 col-lg-4 mt-2">
+              <input type="password" class="w100" placeholder="Enter password" name="password">
+            </div>
+            <div class="col-12 col-lg-2 mt-2">
+              <button type="submit" class="w100 float-md-left btn btn-primary">Submit</button>
+            </div>
+          </div>
         </form>
       </div>
       {% if error is defined %}

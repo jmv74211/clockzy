@@ -8,66 +8,54 @@
 
   <div class="container">
     <div class="row mt-3">
-      <div class="offset-md-8 col-sm-12 col-md-4 user_id text-center">
-        <span id="user_id" class="user_id">
+      <div class="offset-lg-7 col-sm-12 col-lg-4 user_id text-center">
+        <span id="user_id" class="user-id">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
             <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
             <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
           </svg> {{ user_id }}
         </span>
         &nbsp; &nbsp; &nbsp;
-        <a href="{{ url_for('logout') }}" alt="logout">
+        <a href="{{ url_for('logout') }}" alt="Logout">
           <span class="logout">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-box-arrow-right" viewBox="0 0 16 16">
               <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
               <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-            </svg> logout
+            </svg> Logout
           </span>
         </a>
       </div>
     </div>
 
+    <!--Search bar and add button-->
     <div class="row mt-5">
       <div class="col-md-8 m0auto">
         <div class="row">
-          <div class="col-9">
+          <div class="col-md-12 col-lg-9">
             <div class="text-center">
               <input id="search_input" type="search" id="form1"/><button id="search-button" type="button" class="btn btn-primary"><i class="fas fa-search"></i></button>
             </div>
           </div>
-          <div class="col-3">
+          <div class="col-md-12 col-lg-3 mt-3 mt-lg-0 text-center">
             <button id="add_clocking_button" type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modal_add_clocking_data"><i class="fas fa-plus"></i> Add clocking</button>
           </div>
         </div>
       </div>
     </div>
 
+    <!--Success notifications-->
+    {% if notification %}
+    <div class="row">
+      <div class="alert alert-success alert-dismissible mt-3 col-md-6 m0auto">
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <strong>Success:</strong> {{ notification }}.
+      </div>
+    </div>
+    {% endif %}
 
     <!--Table diplay-->
-    <div class="row mt-4">
-      <div class="col-md-8 m0auto">
-        {% if (clocking_data is not defined) or (not clocking_data) %}
-        <div class="alert alert-primary">
-          You have not clocking data
-        </div>
-        {% else %}
-          <table>
-            <tr>
-              <th>Datetime</th>
-              <th>Action</th>
-            </tr>
-            {% for clocking in clocking_data %}
-                <tr>
-                  <td class="row-datetime">{{ clocking[1] }}</td>
-                  <td class="row-action">{{ clocking[2] }}</td>
-                  <td><button type="button" data="{{ clocking }}" class="edit_clocking btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal_edit_data"><i class="fas fa-edit"></i></button>
-                      <button type="button" data="{{ clocking }}" class="delete_clocking btn btn-danger" data-bs-toggle="modal" data-bs-target="#modal_delete_clocking_data"><i class="delete_clocking fas fa-trash-alt"></i></button>
-                  </td>
-                </tr>
-            {% endfor %}
-          </table>
-        {% endif %}
-      </div>
+    <div id="table_test" class="row mt-4">
+      {% include "clock_table_data.html" %}
     </div>
   </div>
 {% endblock %}
