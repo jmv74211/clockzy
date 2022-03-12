@@ -1,5 +1,5 @@
 $(document).ready(function(){
-    var WEB_SERVER_URL = 'http://localhost:7000'
+    var WEB_SERVER_URL = 'http://localhost:10025'
 
     // -----------------------------------------------------------------------------------------------------------------
 

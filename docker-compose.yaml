@@ -28,6 +28,27 @@ services:
         links:
             - mysql-service
 
+    clockzy-web:
+        build:
+            context: .
+            dockerfile: ./deploy/Dockerfile
+        ports:
+            - 10025:10025
+        volumes:
+            - ./:/app
+            - /etc/timezone:/etc/timezone:ro
+            - /etc/localtime:/etc/localtime:ro
+        working_dir: /app
+        command: >
+                bash -c "python3 setup.py install &&
+                         python3 /app/src/web_app/clockzy_web.py"
+        depends_on:
+            - mysql-service
+            - clockzy-api
+        links:
+            - mysql-service
+            - clockzy-api
+
     adminer:
         image: adminer
         restart: always
