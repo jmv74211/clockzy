@@ -25,14 +25,14 @@ def get_current_date_time(timezone='Europe/Berlin'):
     return date_time
 
 
-def get_current_date():
+def get_current_date(timezone='Europe/Berlin'):
     """Get the current date.
 
     Returns:
         str: Date in format in format %Y-%m-%d
     """
 
-    return f"{datetime.now().strftime('%Y-%m-%d')}"
+    return f"{datetime.now(pytz.timezone(timezone)).strftime('%Y-%m-%d')}"
 
 
 def subtract_days_to_datetime(date_time, days):
