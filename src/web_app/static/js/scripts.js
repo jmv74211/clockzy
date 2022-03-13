@@ -4,10 +4,10 @@ $(document).ready(function(){
     // -----------------------------------------------------------------------------------------------------------------
 
     function send_request(endpoint, json_data, type='POST', async=false, url=WEB_SERVER_URL){
-        var request = new XMLHttpRequest();
-        request.open(type, url + '/' + endpoint, async);
-        request.setRequestHeader('Content-Type', 'application/json');
-        request.send(json_data);
+        var request = new XMLHttpRequest()
+        request.open(type, url + '/' + endpoint, async)
+        request.setRequestHeader('Content-Type', 'application/json')
+        request.send(json_data)
 
         return request
     }
@@ -27,12 +27,12 @@ $(document).ready(function(){
         $(element_id_selector).append('\
             <div class="alert alert-danger mt-2" id="' + alert_element_id + '"> \
                 <strong>Error:</strong> ' + message + '\
-            </div>');
+            </div>')
     }
     // -----------------------------------------------------------------------------------------------------------------
 
     function redirect_to_index(){
-        window.location.href= WEB_SERVER_URL + '/index';
+        window.location.href= WEB_SERVER_URL + '/index'
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -62,25 +62,25 @@ $(document).ready(function(){
         var action = clock_data['action']
 
         // // Set the values
-        $('#clocking_id_edit_clocking').attr('value', clock_data['clock_id']);
+        $('#clocking_id_edit_clocking').attr('value', clock_data['clock_id'])
         $('#input_datetime_edit_clocking').empty().append('\
              <input type="text" name="date_time" id="datetime_edit_clocking" placeholder="date_time"' +
                     'value="' + clock_data['date_time']  + '"/>'
         )
 
         // Remove selected values from action select
-        $('#action_edit_clocking').find('option').attr('selected', false) ;
+        $('#action_edit_clocking').find('option').attr('selected', false)
 
         // The following option does not work: Tried to set selected attribute dinamically.
         // The HTML code is updated correctly, but sometines is not well rendered.
-        //$("#action_edit_clocking option[value=" + clock_data['action'] + "]").attr('selected', true);
+        //$("#action_edit_clocking option[value=" + clock_data['action'] + "]").attr('selected', true)
 
         // Workaround: Delete the option item and add a new one with selected attribute.
         $('#option_' + clock_data['action']).remove()
         $('#action_edit_clocking').append(' \
             <option id="option_'+ action + '" value="' + action + '" selected="selected">' + action + '</option>'
         )
-    });
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -88,8 +88,8 @@ $(document).ready(function(){
         var clock_data = get_clock_data($(this).attr('data'))
 
         // Set the values
-        $("#button_delete_clocking_yes").attr('data', clock_data['clock_id']);
-    });
+        $("#button_delete_clocking_yes").attr('data', clock_data['clock_id'])
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -108,20 +108,20 @@ $(document).ready(function(){
         var update_request = send_request('clocking_data', data, 'PUT')
 
         if(update_request.status === 200){
-            redirect_to_index();
+            redirect_to_index()
         } else if(update_request.status == 400){
-            create_error_alert('edit_clocking_alert_error', 'update_clocking_modal_body', update_request.responseText);
+            create_error_alert('edit_clocking_alert_error', 'update_clocking_modal_body', update_request.responseText)
         } else {
-            create_error_alert('edit_clocking_alert_error', 'update_clocking_modal_body', update_request.status);
+            create_error_alert('edit_clocking_alert_error', 'update_clocking_modal_body', update_request.status)
         }
-    });
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
     $('#button_add_clocking').click(function () {
         var user_id = get_user_id()
         var date_time = $('#datetime_add_clocking').val()
-        var action = $('action_add_clocking').val()
+        var action = $('#action_add_clocking').val()
 
         var data = JSON.stringify({
             "user_id": user_id,
@@ -131,13 +131,13 @@ $(document).ready(function(){
         var add_request = send_request('clocking_data', data, 'POST')
 
         if(add_request.status === 200){
-            redirect_to_index();
+            redirect_to_index()
         } else if(add_request.status == 400){
-            create_error_alert('add_clocking_alert_error', 'add_clocking_modal_body', add_request.responseText);
+            create_error_alert('add_clocking_alert_error', 'add_clocking_modal_body', add_request.responseText)
         } else {
-            create_error_alert('add_clocking_alert_error', 'add_clocking_modal_body', add_request.status);
+            create_error_alert('add_clocking_alert_error', 'add_clocking_modal_body', add_request.status)
         }
-    });
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -153,14 +153,14 @@ $(document).ready(function(){
         var delete_request = send_request('clocking_data', data, 'DELETE')
 
         if(delete_request.status === 200){
-            redirect_to_index();
+            redirect_to_index()
         } else if(delete_request.status == 400){
             create_error_alert('delete_clocking_alert_error', 'delete_clocking_modal_body',
-                               delete_request.responseText);
+                               delete_request.responseText)
         } else {
-            create_error_alert('delete_clocking_alert_error', 'delete_clocking_modal_body', delete_request.status);
+            create_error_alert('delete_clocking_alert_error', 'delete_clocking_modal_body', delete_request.status)
         }
-    });
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -168,7 +168,7 @@ $(document).ready(function(){
         if ($('#edit_clocking_alert_error').length > 0){
             $('#edit_clocking_alert_error').remove()
         }
-    });
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -176,7 +176,7 @@ $(document).ready(function(){
         if ($('#add_clocking_alert_error').length > 0){
             $('#add_clocking_alert_error').remove()
         }
-    });
+    })
 
 // -----------------------------------------------------------------------------------------------------------------
 
@@ -184,7 +184,7 @@ $(document).ready(function(){
         if ($('#delete_clocking_alert_error').length > 0){
             $('#delete_clocking_alert_error').remove()
         }
-    });
+    })
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -194,7 +194,7 @@ $(document).ready(function(){
             "search": search
         })
 
-        var request = send_request('/get_query_data', data, 'POST' ,true)
+        var request = send_request('get_query_data', data, 'POST' ,true)
 
         request.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
@@ -202,5 +202,5 @@ $(document).ready(function(){
                 $('#table_test').html(json_response['data'])
            }
         }
-    });
-});
+    })
+})
