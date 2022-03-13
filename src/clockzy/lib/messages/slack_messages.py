@@ -147,7 +147,7 @@ def build_time_history_message(user_id, time_range, timezone):
                                             timezone=timezone)
         if worked_time != '0h 0m':
             num_worked_days += 1
-        worked_time_output += f"*• {worked_day}*: {worked_time}\n"
+        worked_time_output += f"*• {worked_day.split(' ')[0]}*: {worked_time}\n"
 
     # Calculate the average time
     if num_worked_days > 0:
