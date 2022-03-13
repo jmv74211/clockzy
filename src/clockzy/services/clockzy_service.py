@@ -267,7 +267,7 @@ def command_monitoring(func):
 @clockzy_service.route(var.ECHO_REQUEST, methods=['POST'])
 def echo():
     """Endpoint to check the current server status"""
-    return empty_response()
+    return jsonify({'status': 'alive'}), HTTPStatus.OK
 
 
 @clockzy_service.route(var.SIGN_UP_REQUEST, methods=['POST'])
