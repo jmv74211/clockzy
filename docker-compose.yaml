@@ -45,9 +45,6 @@ services:
         depends_on:
             - mysql-service
             - clockzy-api
-        links:
-            - mysql-service
-            - clockzy-api
 
     adminer:
         image: adminer
