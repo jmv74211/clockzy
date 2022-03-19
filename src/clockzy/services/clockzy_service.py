@@ -26,6 +26,7 @@ from clockzy.lib.clocking import user_can_clock_this_action, calculate_worked_ti
 from clockzy.lib import intratime
 from clockzy.lib.utils import crypt, time
 from clockzy.lib.messages import logger_messages as lgm
+from clockzy.scripts import initialize_database, database_healthcheck
 
 
 clockzy_service = Flask(__name__)
@@ -696,5 +697,14 @@ def get_management_credentials(slack_request_object, user_data):
 
 
 if __name__ == '__main__':
+    # Set app logger
     set_logging()
+
+    # Check the database conection
+    database_healthcheck.main()
+
+    # Create and initialize the clockzy DB if does not exist.
+    initialize_database.main()
+
+    # Run clockzy service
     clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=False)

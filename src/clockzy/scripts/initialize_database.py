@@ -9,7 +9,8 @@ from clockzy.lib.db import db_schema as dbs
 SCHEMAS = [dbs.USER_TABLE_SCHEMA, dbs.CLOCK_TABLE_SCHEMA, dbs.COMMANDS_HISTORY_TABLE_SCHEMA, dbs.CONFIG_TABLE_SCHEMA,
            dbs.ALIAS_TABLE_SCHEMA, dbs.TEMPORARY_CREDENTIALS_TABLE_SCHEMA]
 
-if __name__ == '__main__':
+
+def main():
     database = Database()
 
     # Create database if not exist
@@ -18,3 +19,7 @@ if __name__ == '__main__':
     # Create the tables if not exist
     for table_schema in SCHEMAS:
         database.run_query(table_schema)
+
+
+if __name__ == '__main__':
+    main()
