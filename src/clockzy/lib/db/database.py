@@ -31,12 +31,9 @@ class Database:
 
     def connect(self):
         """Create the connection to the database."""
-        try:
-            if self.database_connection is None:
-                self.database_connection = pymysql.connect(host=self.host, user=self.user, password=self.password,
-                                                           database=self.database_name, port=self.port)
-        except pymysql.MySQLError:
-            print(f"Could not connect to the {self.host}:{self.port} {self.database_name} database")
+        if self.database_connection is None:
+            self.database_connection = pymysql.connect(host=self.host, user=self.user, password=self.password,
+                                                       database=self.database_name, port=self.port)
 
     def run_query(self, query):
         """Run a query string in the database
@@ -89,6 +86,19 @@ class Database:
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS {database_name};")
             connection.commit()
         connection.close()
+
+    def healthcheck(self):
+        """Check if the database is ready for connection.
+
+        Returns:
+            boolean: True if it is ready, False otherwise.
+        """
+        try:
+            pymysql.connect(host=self.host, user=self.user, password=self.password, database=self.database_name,
+                            port=self.port)
+            return True
+        except pymysql.err.OperationalError:
+            return False
 
     def close_connection(self):
         """Close the database connection"""
