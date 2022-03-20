@@ -6,10 +6,11 @@ import controller
 import views
 from clockzy.lib.handlers.codes import SUCCESS
 from clockzy.config import settings
+from clockzy.lib.db.database_interface import get_user_object
 
 
-app = Flask(__name__)
-app.secret_key = settings.WEB_APP_SECRET_KEY
+web_app = Flask(__name__)
+web_app.secret_key = settings.WEB_APP_SECRET_KEY
 
 
 def user_logged(func):
@@ -24,19 +25,19 @@ def user_logged(func):
     return wrapper
 
 
-@app.errorhandler(404)
+@web_app.errorhandler(404)
 def page_not_found(error):
     """Redirect to the index page if the requested URI is not found"""
     return redirect(url_for('index'))
 
 
-@app.route('/login', methods=['GET'])
+@web_app.route('/login', methods=['GET'])
 def login():
     """Login view"""
     return views.login()
 
 
-@app.route('/check_credentials', methods=['POST'])
+@web_app.route('/check_credentials', methods=['POST'])
 def check_credentials():
     """Credentials validation proccess"""
     if 'user_id' not in request.form or 'password' not in request.form:
@@ -45,18 +46,19 @@ def check_credentials():
     user_id = request.form['user_id']
     password = request.form['password']
 
-    validation_ok, error_message = controller.validate_credentials(user_id, password)
+    validation_data = controller.validate_credentials(user_id, password)
 
-    if not validation_ok:
-        return views.login(error_message)
+    if not validation_data['result']:
+        return views.login(validation_data['error_message'])
 
     session['logged_in'] = True
     session['user_id'] = user_id
+    session['user_name'] = get_user_object(user_id).user_name
 
     return redirect(url_for('index'))
 
 
-@app.route('/index', methods=['GET'])
+@web_app.route('/index', methods=['GET'])
 @user_logged
 def index():
     """Index view"""
@@ -70,7 +72,7 @@ def index():
     return views.index(session['user_id'], clocking_data, notification)
 
 
-@app.route('/logout', methods=['GET'])
+@web_app.route('/logout', methods=['GET'])
 @user_logged
 def logout():
     """Logout process"""
@@ -78,51 +80,49 @@ def logout():
     return views.login()
 
 
-@app.route('/clocking_data', methods=['PUT'])
+@web_app.route('/clocking_data', methods=['PUT'])
 @user_logged
 def update_clocking_data():
     """Update clocking data process"""
     request_data = request.get_json()
-    result_status, result_message = controller.update_clocking_data(request_data)
+    operation_data = controller.update_clocking_data(request_data)
 
-    if result_status == SUCCESS:
+    if operation_data['result'] == SUCCESS:
         session['notification'] = 'The clocking data has been updated successfully.'
 
-    return make_response(result_message, HTTPStatus.OK) if result_status == SUCCESS else \
-        make_response(result_message, HTTPStatus.BAD_REQUEST)
+    return make_response(operation_data['message'], HTTPStatus.OK) if operation_data['result'] == SUCCESS else \
+        make_response(operation_data['message'], HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/clocking_data', methods=['POST'])
+@web_app.route('/clocking_data', methods=['POST'])
 @user_logged
 def add_clocking_data():
     """Add clocking data endpoint"""
     request_data = request.get_json()
+    operation_data = controller.add_clocking_data(request_data)
 
-    result_status, result_message = controller.add_clocking_data(request_data)
-
-    if result_status == SUCCESS:
+    if operation_data['result'] == SUCCESS:
         session['notification'] = 'The clocking data has been added successfully.'
 
-    return make_response(result_message, HTTPStatus.OK) if result_status == SUCCESS else \
-        make_response(result_message, HTTPStatus.BAD_REQUEST)
+    return make_response(operation_data['message'], HTTPStatus.OK) if operation_data['result'] == SUCCESS else \
+        make_response(operation_data['message'], HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/clocking_data', methods=['DELETE'])
+@web_app.route('/clocking_data', methods=['DELETE'])
 @user_logged
 def delete_clocking_data():
     """Delete clocking data endpoint"""
     request_data = request.get_json()
+    operation_data = controller.delete_clocking_data(request_data)
 
-    result_status, result_message = controller.delete_clocking_data(request_data)
-
-    if result_status == SUCCESS:
+    if operation_data['result'] == SUCCESS:
         session['notification'] = 'The clocking data has been deleted successfully.'
 
-    return make_response(result_message, HTTPStatus.OK) if result_status == SUCCESS else \
-        make_response(result_message, HTTPStatus.BAD_REQUEST)
+    return make_response(operation_data['message'], HTTPStatus.OK) if operation_data['result'] == SUCCESS else \
+        make_response(operation_data['message'], HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/get_query_data', methods=['POST'])
+@web_app.route('/get_query_data', methods=['POST'])
 @user_logged
 def get_query_data():
     """Get the clocking table view according to the specified parameters"""
@@ -139,4 +139,4 @@ def get_query_data():
 
 
 if __name__ == '__main__':
-    app.run(host=settings.WEB_APP_SERVICE_HOST, port=settings.WEB_APP_SERVICE_PORT, debug=False)
+    web_app.run(host=settings.WEB_APP_SERVICE_HOST, port=settings.WEB_APP_SERVICE_PORT, debug=False)

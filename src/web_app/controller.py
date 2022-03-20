@@ -39,25 +39,31 @@ def validate_credentials(user_id, password):
         password (str): User password.
 
     Returns:
-        (boolean, str): Credentials validation result and error message in case that credentials are not correct.
+        (dict): Dictionary with the validation result and metadata.
     """
     user_data = get_database_data_from_objects({'user_id': user_id}, TEMPORARY_CREDENTIALS_TABLE)
 
+    # Check user ID
     if len(user_data) == 0:
-        return False, f"The user {user_id} does not exist, or does not have credentials set up for the clockzy web" \
-                      f" app. Please run {MANAGEMENT_REQUEST} in the clockzy slack application to create them."
+        return {'result': False,
+                'error_message': f"The user {user_id} does not exist, or does not have credentials set up for "
+                                 f"the clockzy web app. Please run {MANAGEMENT_REQUEST} in the clockzy slack "
+                                 'application to create them.'}
 
     user_password = user_data[0][1]
     password_expiration_time = user_data[0][2]
 
+    # Check password
     if user_password != password:
-        return False, f"Your password is not correct."
+        return {'result': False, 'error_message': 'Your password is not correct.'}
 
+    # Check password time expiration
     if time.date_time_has_expired(password_expiration_time):
-        return False, f"Your password has expired. Please run {MANAGEMENT_REQUEST} in the clockzy slack application " \
-                      'to create a new one.'
+        return {'result': False, 'error_message': f"Your password has expired. Please run {MANAGEMENT_REQUEST} in the "
+                                                  'clockzy slack application to create a new one.'}
 
-    return True, ''
+    # Successful validation
+    return {'result': True, 'error_message': None}
 
 
 def get_clocking_data(user_id):
@@ -80,35 +86,36 @@ def update_clocking_data(clocking_data):
         clocking_data (dict): New clocking data.
 
     Returns:
-        (int, str): Result code and result operation message.
+        dict: Dictionary with the action result and metadata.
     """
     required_fields = ['user_id', 'clock_id', 'action', 'date_time']
 
     for field in required_fields:
         if field not in clocking_data:
-            return GENERIC_ERROR, f"Missing data. Required fields = {required_fields}"
+            return {'result': GENERIC_ERROR, 'message': f"Missing data. Required fields = {required_fields}"}
 
     if clocking_data['action'].lower() not in ALLOWED_ACTIONS:
-        return GENERIC_ERROR, f"Your action {clocking_data['action']} is not allowed.<br/>\n" \
-            f"Allowed ones: {_raw_list(ALLOWED_ACTIONS, True)}"
+        return {'result': GENERIC_ERROR, 'message': f"Your action {clocking_data['action']} is not allowed.<br/>\n"
+                                                    f"Allowed ones: {_raw_list(ALLOWED_ACTIONS, True)}"}
 
     if not time.validate_date_time_format(clocking_data['date_time']):
-        return GENERIC_ERROR, f"Your date_time {clocking_data['date_time']} format is not he expected one. " \
-                              f"<br/>\nExpected {DATE_TIME_FORMAT}"
+        return {'result': GENERIC_ERROR, 'message': f"Your date_time {clocking_data['date_time']} format is not "
+                                                    f"the expected one. <br/>\nExpected {DATE_TIME_FORMAT}"}
 
     if not time.check_if_date_time_belongs_to_current_year(clocking_data['date_time']):
-        return GENERIC_ERROR, f"You can only edit clockings from the current year."
+        return {'result': GENERIC_ERROR, 'message': f"You can only edit clockings from the current year."}
 
     if time.check_if_future_date_time(clocking_data['date_time']):
-        return GENERIC_ERROR, f"You cannot use datetimes that belong to the future."
+        return {'result': GENERIC_ERROR, 'message': f"You cannot use datetimes that belong to the future."}
 
     clock_object = get_clock_object(clock_id=clocking_data['clock_id'])
 
     if clock_object is None:
-        return GENERIC_ERROR, f"No clocking ID {clocking_data['clock_id']} exists"
+        return {'result': GENERIC_ERROR, 'message': f"No clocking ID {clocking_data['clock_id']} exists"}
 
     if clocking_data['user_id'] != clock_object.user_id:
-        return GENERIC_ERROR, f"The clocking ID {clocking_data['clock_id']} does not belong to your user"
+        return {'result': GENERIC_ERROR, 'message': f"The clocking ID {clocking_data['clock_id']} does not belong "
+                                                    'to your user'}
 
     # Get the time difference between local server datetime and clocking datetime
     time_difference = get_time_difference(clock_object.date_time, clock_object.local_date_time)
@@ -121,9 +128,9 @@ def update_clocking_data(clocking_data):
     update_result = clock_object.update()
 
     if update_result != SUCCESS:
-        return GENERIC_ERROR, f"Error ({update_result}) when updating a clocking data"
+        return {'result': GENERIC_ERROR, 'message': f"Error ({update_result}) when updating a clocking data"}
 
-    return SUCCESS, 'The clocking data has been updated successfully'
+    return {'result': SUCCESS, 'message': 'The clocking data has been updated successfully', 'data': clocking_data}
 
 
 def add_clocking_data(clocking_data):
@@ -133,35 +140,35 @@ def add_clocking_data(clocking_data):
         clocking_data (dict): New clocking data.
 
     Returns:
-        (int, str): Result code and result operation message.
+        dict: Dictionary with the action result and metadata.
     """
     required_fields = ['user_id', 'action', 'date_time']
 
     for field in required_fields:
         if field not in clocking_data:
-            return GENERIC_ERROR, f"Missing data. Required fields = {required_fields}"
+            return {'result': GENERIC_ERROR, 'message': f"Missing data. Required fields = {required_fields}"}
 
     if clocking_data['action'].lower() not in ALLOWED_ACTIONS:
-        return GENERIC_ERROR, f"Your action {clocking_data['action']} is not allowed.<br/>\n" \
-            f"Allowed ones: {_raw_list(ALLOWED_ACTIONS, True)}"
+        return {'result': GENERIC_ERROR, 'message': f"Your action {clocking_data['action']} is not allowed.<br/>\n"
+                                                    f"Allowed ones: {_raw_list(ALLOWED_ACTIONS, True)}"}
 
     if not time.validate_date_time_format(clocking_data['date_time']):
-        return GENERIC_ERROR, f"Your date_time {clocking_data['date_time']} format is not he expected one. " \
-                              f"<br/>\nExpected {DATE_TIME_FORMAT}"
+        return {'result': GENERIC_ERROR, 'message': f"Your date_time {clocking_data['date_time']} format is not "
+                                                    f"the expected one. <br/>\nExpected {DATE_TIME_FORMAT}"}
 
     if not time.check_if_date_time_belongs_to_current_year(clocking_data['date_time']):
-        return GENERIC_ERROR, f"You can only add clockings from the current year."
+        return {'result': GENERIC_ERROR, 'message': f"You can only add clockings from the current year."}
 
     if time.check_if_future_date_time(clocking_data['date_time']):
-        return GENERIC_ERROR, f"You cannot use datetimes that belong to the future."
+        return {'result': GENERIC_ERROR, 'message': f"You cannot use datetimes that belong to the future."}
 
     clock_object = Clock(clocking_data['user_id'], clocking_data['action'].lower(), clocking_data['date_time'])
     add_result = clock_object.save()
 
     if add_result != SUCCESS:
-        return GENERIC_ERROR, f"Error ({add_result}) when adding a clocking data"
+        return {'result': GENERIC_ERROR, 'message': f"Error ({add_result}) when adding a clocking data."}
 
-    return SUCCESS, 'The clocking data has been added successfully'
+    return {'result': SUCCESS, 'message': 'The clocking data has been added successfully.', 'data': clocking_data}
 
 
 def delete_clocking_data(clocking_data):
@@ -171,28 +178,28 @@ def delete_clocking_data(clocking_data):
         clocking_data (dict): Clocking data to delete. Required fields: 'user_id', 'clock_id'.
 
     Returns:
-        (int, str): Result code and result operation message.
+        dict: Dictionary with the action result and metadata.
     """
     required_fields = ['user_id', 'clock_id']
 
     for field in required_fields:
         if field not in clocking_data:
-            return GENERIC_ERROR, f"Missing data. Required fields = {required_fields}"
+            return {'result': GENERIC_ERROR, 'message': f"Missing data. Required fields = {required_fields}"}
 
     clock_object = get_clock_object(clock_id=clocking_data['clock_id'])
 
     if clock_object is None:
-        return GENERIC_ERROR, f"No clocking ID {clocking_data['clock_id']} exists"
+        return {'result': GENERIC_ERROR, 'message': f"No clocking ID {clocking_data['clock_id']} exists"}
 
     if clocking_data['user_id'] != clock_object.user_id:
-        return GENERIC_ERROR, f"The clocking ID {clocking_data['clock_id']} does not belong to your user"
-
+        return {'result': GENERIC_ERROR, 'message': f"The clocking ID {clocking_data['clock_id']} does not belong "
+                                                    'to your user'}
     delete_result = clock_object.delete()
 
     if delete_result != SUCCESS:
-        return GENERIC_ERROR, f"Error ({delete_result}) when deleting a clocking data"
+        return {'result': GENERIC_ERROR, 'message': f"Error ({delete_result}) when deleting a clocking data"}
 
-    return SUCCESS, 'The clocking data has been deleted successfully'
+    return {'result': SUCCESS, 'message': 'The clocking data has been deleted successfully', 'data': clocking_data}
 
 
 def get_filtered_clock_user_data(user_id, search=''):
