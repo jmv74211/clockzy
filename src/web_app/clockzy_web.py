@@ -1,3 +1,5 @@
+import logging
+from os.path import join
 from flask import Flask, request, jsonify, make_response, redirect, url_for, session
 from functools import wraps
 from http import HTTPStatus
@@ -7,10 +9,28 @@ import views
 from clockzy.lib.handlers.codes import SUCCESS
 from clockzy.config import settings
 from clockzy.lib.db.database_interface import get_user_object
+from clockzy.lib.messages import logger_messages as lgm
 
 
 web_app = Flask(__name__)
 web_app.secret_key = settings.WEB_APP_SECRET_KEY
+service_logger = logging.getLogger('werkzeug')
+web_app_logger = logging.getLogger('clockzy')
+
+
+def set_logging():
+    """Configure the service and app loggers"""
+    # Set service logs
+    service_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+    service_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_web_service.log'))
+    service_logger.addHandler(service_file_handler)
+
+    # Set app logs
+    web_app_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+    formatter = logging.Formatter("%(asctime)s — %(levelname)s — %(message)s")
+    web_app_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_web_app.log'))
+    web_app_file_handler.setFormatter(formatter)
+    web_app_logger.addHandler(web_app_file_handler)
 
 
 def user_logged(func):
@@ -55,6 +75,8 @@ def check_credentials():
     session['user_id'] = user_id
     session['user_name'] = get_user_object(user_id).user_name
 
+    web_app_logger.info(lgm.user_logged(session['user_name'], user_id))
+
     return redirect(url_for('index'))
 
 
@@ -89,6 +111,10 @@ def update_clocking_data():
 
     if operation_data['result'] == SUCCESS:
         session['notification'] = 'The clocking data has been updated successfully.'
+        clocking_data = operation_data['data']
+        web_app_logger.info(lgm.success_updating_clocking_data(session['user_name'], session['user_id'],
+                                                               clocking_data['clock_id'], clocking_data['action'],
+                                                               clocking_data['date_time']))
 
     return make_response(operation_data['message'], HTTPStatus.OK) if operation_data['result'] == SUCCESS else \
         make_response(operation_data['message'], HTTPStatus.BAD_REQUEST)
@@ -103,6 +129,9 @@ def add_clocking_data():
 
     if operation_data['result'] == SUCCESS:
         session['notification'] = 'The clocking data has been added successfully.'
+        clocking_data = operation_data['data']
+        web_app_logger.info(lgm.success_adding_clocking_data(session['user_name'], session['user_id'],
+                                                             clocking_data['action'], clocking_data['date_time']))
 
     return make_response(operation_data['message'], HTTPStatus.OK) if operation_data['result'] == SUCCESS else \
         make_response(operation_data['message'], HTTPStatus.BAD_REQUEST)
@@ -117,6 +146,8 @@ def delete_clocking_data():
 
     if operation_data['result'] == SUCCESS:
         session['notification'] = 'The clocking data has been deleted successfully.'
+        web_app_logger.info(lgm.success_deleting_clocking_data(session['user_name'], session['user_id'],
+                                                               operation_data['data']['clock_id']))
 
     return make_response(operation_data['message'], HTTPStatus.OK) if operation_data['result'] == SUCCESS else \
         make_response(operation_data['message'], HTTPStatus.BAD_REQUEST)
@@ -139,4 +170,5 @@ def get_query_data():
 
 
 if __name__ == '__main__':
+    set_logging()
     web_app.run(host=settings.WEB_APP_SERVICE_HOST, port=settings.WEB_APP_SERVICE_PORT, debug=False)

@@ -4,6 +4,8 @@ bad_slack_signature = 'The slack signature is not correct'
 bad_timestamp_signature = 'The slack timestamp signature is not correct'
 
 
+# CLOCKZY API
+
 def unauthorized_request(ip):
     return f"An unauthorized request has been received from {ip}"
 
@@ -87,3 +89,21 @@ def success_updating_user(user, id):
 
 def error_getting_user_profile_info(user, id):
     return f"Error when getting the user profile info for the user {user}({id})"
+
+# CLOCKZY WEB APP
+
+
+def user_logged(user, id):
+    return f"The user {user}({id}) has logged in"
+
+
+def success_adding_clocking_data(user, id, action, date_time):
+    return f"The user {user}({id}) has inserted a new clock: {action} - {date_time}"
+
+
+def success_updating_clocking_data(user, id, clock_id, action, date_time):
+    return f"The user {user}({id}) has updated the clocking data from ID {clock_id}. New data --> {action} - {date_time}"
+
+
+def success_deleting_clocking_data(user, id, clock_id):
+    return f"The user {user}({id}) has deleted the clocking data from ID {clock_id}"
