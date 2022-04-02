@@ -2,6 +2,7 @@ import logging
 from flask import Flask, jsonify, request, make_response
 from http import HTTPStatus
 from functools import wraps
+from os import environ
 from os.path import join
 
 from clockzy.lib.db.db_schema import USER_TABLE, ALIAS_TABLE, TEMPORARY_CREDENTIALS_TABLE
@@ -30,7 +31,6 @@ from clockzy.scripts import initialize_database, database_healthcheck
 
 
 clockzy_service = Flask(__name__)
-service_logger = logging.getLogger('werkzeug')
 app_logger = logging.getLogger('clockzy')
 
 ALLOWED_COMMANDS = {
@@ -129,10 +129,12 @@ def empty_response():
 
 def set_logging():
     """Configure the service and app loggers"""
-    # Set service logs
-    service_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
-    service_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_service.log'))
-    service_logger.addHandler(service_file_handler)
+    # Set service logs (Set only if the app is not run with gunicorn)
+    if 'GUNICORN' not in environ:
+        service_logger = logging.getLogger('werkzeug')
+        service_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+        service_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_service.log'))
+        service_logger.addHandler(service_file_handler)
 
     # Set app logs
     app_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
@@ -696,15 +698,17 @@ def get_management_credentials(slack_request_object, user_data):
     return empty_response()
 
 
+# Run this tasks outside the main because gunicorn will not run that main (See https://stackoverflow.com/a/26579510)
+# Set app logger
+set_logging()
+
+# Check the database conection
+database_healthcheck.main()
+
+# Create and initialize the clockzy DB if does not exist.
+initialize_database.main()
+
+
 if __name__ == '__main__':
-    # Set app logger
-    set_logging()
-
-    # Check the database conection
-    database_healthcheck.main()
-
-    # Create and initialize the clockzy DB if does not exist.
-    initialize_database.main()
-
     # Run clockzy service
     clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=False)

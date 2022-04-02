@@ -1,5 +1,6 @@
 import logging
 from os.path import join
+from os import environ
 from flask import Flask, request, jsonify, make_response, redirect, url_for, session
 from functools import wraps
 from http import HTTPStatus
@@ -14,16 +15,17 @@ from clockzy.lib.messages import logger_messages as lgm
 
 web_app = Flask(__name__)
 web_app.secret_key = settings.WEB_APP_SECRET_KEY
-service_logger = logging.getLogger('werkzeug')
 web_app_logger = logging.getLogger('clockzy')
 
 
 def set_logging():
     """Configure the service and app loggers"""
     # Set service logs
-    service_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
-    service_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_web_service.log'))
-    service_logger.addHandler(service_file_handler)
+    if 'GUNICORN' not in environ:
+        service_logger = logging.getLogger('werkzeug')
+        service_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
+        service_file_handler = logging.FileHandler(join(settings.LOGS_PATH, 'clockzy_web_service.log'))
+        service_logger.addHandler(service_file_handler)
 
     # Set app logs
     web_app_logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
@@ -169,6 +171,10 @@ def get_query_data():
     return jsonify({'data': table_view}), HTTPStatus.OK
 
 
+# Run this tasks outside the main because gunicorn will not run that main (See https://stackoverflow.com/a/26579510)
+# Set app logger
+set_logging()
+
+
 if __name__ == '__main__':
-    set_logging()
     web_app.run(host=settings.WEB_APP_SERVICE_HOST, port=settings.WEB_APP_SERVICE_PORT, debug=False)
