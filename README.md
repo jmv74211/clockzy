@@ -26,6 +26,7 @@ Slack application that allows users to keep track of their working hours and his
   * [Unlink your Intratime account](#unlink-your-intratime-account)
   * [Update your user information](#update-your-user-information)
   * [Delete your user](#delete-your-user)
+  * [Manage your clockings: view, add, edit, and delete](#manage-your-clockings-view-add-edit-and-delete)
   * [Get commands help](#get-commands-help)
 - [How to deploy](#how-to-deploy)
   * [Configure your slack app](#configure-your-slack-app)
@@ -304,6 +305,39 @@ If for any reason you want to delete your clockzy app user, you can do it with t
 </p>
 
 > Note: All the information related to your user will be deleted: profile, clockings...
+
+## Manage your clockings: view, add, edit, and delete
+
+You can manage all your clockings by accessing the web administration panel. To do so, you will need to generate
+login credentials. You can generate them by typing the following command:
+
+```
+/management
+```
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/clockzy_management.png">
+</p>
+
+> Note: The generated password will be temporary and will have a validation of 60 seconds.
+
+Once the credentials are generated, you will have to access the site by clicking on the link indicated when the
+credentials were created (`https://your-web.app.es` in the image above).
+
+After accessing you will have to enter your credentials in the login form.
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/clockzy_web_login.png">
+</p>
+
+Finally, you will access your administration panel, where you will be able to view all the clockings made and add new
+ones, edit or delete existing ones.This is useful when you have forgotten to register a clocking at some point,
+and you later and then add or update it manually.
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/jmv74211/tools/master/images/repository/clockzy/clockzy_web_index.png">
+</p>
+
 
 ## Get commands help
 
