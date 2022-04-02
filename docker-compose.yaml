@@ -25,7 +25,8 @@ services:
             - GUNICORN=1
         command: >
                 bash -c "python3 setup.py install && cd /app/src/clockzy/services &&
-                         python3 -m gunicorn --bind 0.0.0.0:10030 -w 2 --access-logfile /app/logs/clockzy_service.log clockzy_service:clockzy_service"
+                         python3 -m gunicorn --bind 0.0.0.0:10030 -w 2 --access-logfile /app/logs/clockzy_service.log \
+                         --timeout 300 clockzy_service:clockzy_service"
         depends_on:
             - mysql-service
         links:
@@ -47,7 +48,8 @@ services:
             - GUNICORN=1
         command: >
                 bash -c "python3 setup.py install && cd /app/src/web_app &&
-                         python3 -m gunicorn --bind 0.0.0.0:10025 -w 2 --access-logfile /app/logs/clockzy_web_service.log clockzy_web:web_app"
+                         python3 -m gunicorn --bind 0.0.0.0:10025 -w 2 \
+                         --access-logfile /app/logs/clockzy_web_service.log --timeout 300 clockzy_web:web_app"
         depends_on:
             - mysql-service
             - clockzy-api
