@@ -102,7 +102,8 @@ def success_adding_clocking_data(user, id, action, date_time):
 
 
 def success_updating_clocking_data(user, id, clock_id, action, date_time):
-    return f"The user {user}({id}) has updated the clocking data from ID {clock_id}. New data --> {action} - {date_time}"
+    return f"The user {user}({id}) has updated the clocking data from ID {clock_id}. " \
+           f"New data --> {action} - {date_time}"
 
 
 def success_deleting_clocking_data(user, id, clock_id):
