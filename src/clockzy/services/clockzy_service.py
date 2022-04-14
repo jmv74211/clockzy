@@ -711,4 +711,4 @@ initialize_database.main()
 
 if __name__ == '__main__':
     # Run clockzy service
-    clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=False)
+    clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=settings.DEBUG_MODE)

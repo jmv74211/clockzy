@@ -177,4 +177,4 @@ set_logging()
 
 
 if __name__ == '__main__':
-    web_app.run(host=settings.WEB_APP_SERVICE_HOST, port=settings.WEB_APP_SERVICE_PORT, debug=False)
+    web_app.run(host=settings.WEB_APP_SERVICE_HOST, port=settings.WEB_APP_SERVICE_PORT, debug=settings.DEBUG_MODE)
