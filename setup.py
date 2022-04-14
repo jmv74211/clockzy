@@ -3,7 +3,7 @@ import shutil
 import glob
 
 setup(name='clockzy',
-      version='3.0',
+      version='1.0',
       description='Application for managing job clockings. Integrated with slack and intratime.',
       url='https://github.com/jmv74211/clockzy',
       author='jmv74211',
