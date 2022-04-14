@@ -8,3 +8,6 @@ deploy/db_data/*
 src/logs/*
 !src/logs/readme.md
 .pylintrc
+*.key
+*.crt
+*.swp
