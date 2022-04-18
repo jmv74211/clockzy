@@ -122,7 +122,7 @@ def update_clocking_data(clocking_data):
 
     # Update the clocking object data
     clock_object.date_time = clocking_data['date_time']
-    clock_object.action = clocking_data['action']
+    clock_object.action = clocking_data['action'].lower()
     clock_object.local_date_time = add_seconds_to_datetime(clocking_data['date_time'], time_difference)
 
     update_result = clock_object.update()
