@@ -62,13 +62,16 @@ def get_week_day(date_time):
     return date_object.weekday()
 
 
-def get_first_week_day():
-    """Get the first datetime of current week
+def get_first_week_day(timezone='Europe/Berlin'):
+    """Get the first datetime of current week.
+
+    Args:
+        timezone (str): User timezone.
 
     Returns
         str: First day of week in %Y-%m-%d %H:%M:%S format. e.g 2020-11-02 00:00:00
     """
-    date_time = f"{get_current_date()} 00:00:00"
+    date_time = f"{get_current_date(timezone)} 00:00:00"
     week_init_date = datetime.strptime(subtract_days_to_datetime(date_time, get_week_day(date_time)),
                                        '%Y-%m-%d %H:%M:%S').date()
     week_init_datetime = f"{datetime.strftime(week_init_date, '%Y-%m-%d')} 00:00:00"
@@ -76,13 +79,16 @@ def get_first_week_day():
     return week_init_datetime
 
 
-def get_first_month_day():
+def get_first_month_day(timezone='Europe/Berlin'):
     """Get the first datetime of current month.
+
+    Args:
+        timezone (str): User timezone.
 
     Returns:
         str: %Y-%m-%d %H:%M:%S: First day of month e.g 2020-11-01 00:00:00
     """
-    date_time = f"{get_current_date()} 00:00:00"
+    date_time = f"{get_current_date(timezone)} 00:00:00"
     date_time_object = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S').replace(day=1, hour=0, minute=0, second=0)
     month_init_datetime = datetime.strftime(date_time_object, '%Y-%m-%d %H:%M:%S')
 
@@ -140,21 +146,22 @@ def datetime_to_str(datetime):
     return datetime.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def get_lower_time_from_time_range(time_range):
+def get_lower_time_from_time_range(time_range, timezone='Europe/Berlin'):
     """Get the start date of the specified time range.
 
     Args:
         time_range (str): Enum [today, week, month].
+        timezone (str): User timezone.
 
     Returns:
         str: Date string in format %Y-%m-%d 00:00:00
     """
     if time_range == 'today':
-        lower_limit_datetime = f"{get_current_date()} 00:00:00"
+        lower_limit_datetime = f"{get_current_date(timezone)} 00:00:00"
     elif time_range == 'week':
-        lower_limit_datetime = get_first_week_day()
+        lower_limit_datetime = get_first_week_day(timezone)
     else:  # Month
-        lower_limit_datetime = get_first_month_day()
+        lower_limit_datetime = get_first_month_day(timezone)
 
     return lower_limit_datetime
 

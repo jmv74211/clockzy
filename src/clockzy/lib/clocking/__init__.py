@@ -62,7 +62,7 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
         str: Worked time in the following format [x]h [y]m
     """
     if time_range:
-        lower_limit = time.get_lower_time_from_time_range(time_range)
+        lower_limit = time.get_lower_time_from_time_range(time_range, timezone)
         upper_limit = time.get_current_date_time(timezone)
 
     # Get the clocking objects
@@ -79,7 +79,7 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
         # Get time in case of continuing from the previous clocking
         user_last_clock = before_clockings[-1]
         if user_last_clock.action.lower() == IN_ACTION or user_last_clock.action.lower() == RETURN_ACTION:
-            lower_limit = f"{time.get_current_date_time().split(' ')[0]} 00:00:00"
+            lower_limit = f"{time.get_current_date_time(timezone).split(' ')[0]} 00:00:00"
             time_difference = time.get_time_difference(lower_limit, time.get_current_date_time(timezone))
             return time.get_time_hh_mm_from_seconds(time_difference)
         # The user closed the previous days and has not started yet
@@ -114,8 +114,8 @@ def calculate_worked_time(user_id, time_range=None, lower_limit=None, upper_limi
     # Add the time remaining until now before pausing or exiting (time worked but not clocked)
     if last_clocked_action != OUT_ACTION and last_clocked_action != PAUSE_ACTION:
         # If the date is today, then add up to the current time
-        if last_clocked_datetime.split(' ')[0] == time.get_current_date_time().split(' ')[0]:
-            last_clocked_datetime_end = time.get_current_date_time()
+        if last_clocked_datetime.split(' ')[0] == time.get_current_date_time(timezone).split(' ')[0]:
+            last_clocked_datetime_end = time.get_current_date_time(timezone)
         # If the date is not today, then add to the end of that day
         else:
             last_clocked_datetime_end = f"{last_clocked_datetime.split(' ')[0]} 23:59:59"
