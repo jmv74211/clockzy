@@ -437,7 +437,7 @@ def clock(slack_request_object, user_data):
     user_data.last_registration_date = get_current_date_time()
     user_data.update()
 
-    app_logger.error(lgm.success_clockzy_clocking(user_data.user_name, user_data.id, action.upper()))
+    app_logger.info(lgm.success_clockzy_clocking(user_data.user_name, user_data.id, action.upper()))
 
     return empty_response()
 
@@ -711,4 +711,4 @@ initialize_database.main()
 
 if __name__ == '__main__':
     # Run clockzy service
-    clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=settings.DEBUG_MODE)
+    clockzy_service.run(host=settings.SLACK_SERVICE_HOST, port=settings.SLACK_SERVICE_PORT, debug=False)
