@@ -87,6 +87,7 @@ def check_credentials():
 def index():
     """Index view"""
     clocking_data = controller.get_clocking_data(session['user_id'])
+    clocking_data.reverse()  # Reverse the data to order them from most recent to least recent
 
     notification = session['notification'] if 'notification' in session else None
 
@@ -165,6 +166,7 @@ def get_query_data():
         make_response('Error: Need search data parameter', HTTPStatus.BAD_REQUEST)
 
     clock_data = controller.get_filtered_clock_user_data(session['user_id'], request_data['search'])
+    clock_data.reverse()  # Reverse the data to order them from most recent to least recent
 
     table_view = views.get_clocking_table(clock_data).replace('&#39;', "'")
 
