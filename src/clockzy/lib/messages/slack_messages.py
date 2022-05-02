@@ -365,7 +365,7 @@ def send_slack_message(message_id, response_url, extra_args=[]):
     message_type = 'blocks' if message_id in block_messages else 'text'
 
     if message_id == 'USER_NOT_REGISTERED':
-        message = build_error_message('Your user is not registered!. You can do it typing `/sign_up` command')
+        message = build_error_message('Your user is not registered!. You can do it typing `/sign-up` command')
     elif message_id == 'NOT_ALLOWED_COMMAND':
         message = f"`{extra_args[0]}` is not an allowed command. Allowed ones: `{extra_args[1]}`"
     elif message_id == 'WRONG_NUM_COMMAND_PARAMETERS':
